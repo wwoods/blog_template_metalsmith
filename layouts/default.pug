@@ -5,6 +5,10 @@ html(lang="en")
   body
     if date !== undefined
       div Posted #{date}.
+    each tag in tags
+      if tag.name !== '_all'
+        div Tagged #{tagsRootPath[tag.name]}.
     block template
+    block teaser
     block contents
 

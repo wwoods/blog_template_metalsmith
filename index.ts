@@ -33,6 +33,9 @@ Metalsmith(path.resolve(__dirname, '..'))
     const tagsAny:any = {};
 
     for (let k in files) {
+      if (files[k].title === undefined) {
+        files[k].title = k;
+      }
       if (files[k].tags === undefined) {
         if (k === 'index.pug') continue;  //Special case
         files[k].tags = [];

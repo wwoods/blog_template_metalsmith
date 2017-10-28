@@ -22,3 +22,5 @@ block template
     each post in tags[tag]
       div
         a(href= pathTagsRoot + '../' + post.path) #{post.title}
+
+        div #{post.teaser}
