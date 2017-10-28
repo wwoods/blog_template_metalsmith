@@ -1,0 +1,22 @@
+extends default.pug
+
+block template
+  - var depth = 1 + (tag.match(/\//g) || []).length
+  - var allTags = Object.keys(tags)
+  - allTags.sort()
+
+  h1
+    each part, idx in tag.split(/\//g)
+      span /
+      a(href= '../'.repeat(depth) + tag.split(/\//g).slice(0, 1+idx).join('/') + '/index.html') #{part}
+    h1 #{tag}
+  div
+    h2 Children
+    each child in allTags
+      if child.indexOf(tag) === 0
+        div
+          a(href= '../'.repeat(depth) + child + '/index.html') #{child}
+  h2 Posts
+  div
+    each post in tags[tag]
+      a(href= '../'.repeat(2 + (tag.match(/\//g) || []).length) + post.path) #{post.title}
