@@ -14,8 +14,8 @@
   },
   "dependencies": {
     "metalsmith": "^2.3.0",
-    "metalsmith-layouts": "^1.8.1",
     "metalsmith-permalinks": "^0.5.0",
+    "multimatch": "^2.1.0",
     "pug": "^2.0.0-rc.4",
     "typescript": "^2.5.3"
   },
