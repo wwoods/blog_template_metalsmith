@@ -1,21 +1,24 @@
 extends default.pug
 
 block template
+  - var pathTagsRoot = (path === 'index.html' ? 'tags/' : '../')
+
   each part, idx in tagsParents[tag] || []
     if idx === 0
       span Parents: &nbsp;
     else
       span ,
-    a(href= '../' + part + '/index.html') #{part}
+    a(href= pathTagsRoot + part + '/index.html') #{part}
   h1
-    a(href= '../' + tag + '/index.html') #{tag}
+    a(href= pathTagsRoot + tag + '/index.html') #{tagsRootPath[tag]}
   if tagsChildren[tag] !== undefined
     div
       h2 Children
       each child in tagsChildren[tag]
         div
-          a(href= '../' + child + '/index.html') #{child}
+          a(href= pathTagsRoot + child + '/index.html') #{child}
   h2 Posts
   div
     each post in tags[tag]
-      a(href= '../'.repeat(2 + (tag.match(/\//g) || []).length) + post.path) #{post.title}
+      div
+        a(href= pathTagsRoot + '../' + post.path) #{post.title}

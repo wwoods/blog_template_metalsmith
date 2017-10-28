@@ -26,11 +26,15 @@ Metalsmith(path.resolve(__dirname, '..'))
   .use((files:any, metalsmith:any) => {
     //Assume tags specified as "a/b/c" denotes that c is a child of b, and
     //b is a child of a.  The document will be tagged as a, b, and c.
+    //For tags without children or without parents, tagsChildren and tagsParent
+    //will be undefined.
     const tagsChildren:any = {};
     const tagsParents:any = {};
+    const tagsAny:any = {};
 
     for (let k in files) {
       if (files[k].tags === undefined) {
+        if (k === 'index.pug') continue;  //Special case
         files[k].tags = [];
       }
       else if (typeof files[k].tags === 'string') {
@@ -40,6 +44,7 @@ Metalsmith(path.resolve(__dirname, '..'))
           .map((v:string) => v.toLowerCase().replace(/^\s+|\s+$/g, ''))
           ;
       const newTags = new Map<string, true>();
+      newTags.set('_all', true);
       for (let t of oldTags) {
         const tsplits = t.split(/\s*\/\s*/g);
         for (let i = 0, m = tsplits.length - 1; i < m; i++) {
@@ -52,6 +57,7 @@ Metalsmith(path.resolve(__dirname, '..'))
         }
         for (let i = 0, m = tsplits.length; i < m; i++) {
           newTags.set(tsplits[i], true);
+          tagsAny[tsplits[i]] = true;
         }
       }
 
@@ -73,11 +79,56 @@ Metalsmith(path.resolve(__dirname, '..'))
       metadata.tagsParents[k].sort();
     }
 
+    //Find the quickest path for each tag to the root (a tag with no parents).
+    metadata.tagsRootPath = {};
+    for (let k in tagsAny) {
+      const stack = new Array<[string, string]>();
+      const seen = new Set<string>();
+      stack.push([k, k]);
+      seen.add(k);
+      let done:string|undefined;
+      //Breadth-first search...
+      while (true) {
+        const t = stack.shift();
+        if (t === undefined) break;
+        const [top, path] = t;
+        if (metadata.tagsParents[top] === undefined) {
+          //Root level.  Have a path.
+          done = path;
+          break;
+        }
+        for (const p of metadata.tagsParents[k]) {
+          if (seen.has(p)) continue;
+          seen.add(p);
+          stack.push([p, `${p}/${path}`]);
+        }
+      }
+
+      if (done === undefined) {
+        done = k;
+      }
+      metadata.tagsRootPath[k] = done;
+    }
+
     metalsmith.metadata(metadata);
   })
   .use((files:any, metalsmith:any) => {
+    //Sets .path
     for (let k in files) {
-      files[k].path = k.replace(/([^\/]+)\.pug$/g, '$1/index.html');
+      if (k.search(/index\.pug$/g) !== -1) {
+        files[k].path = k.replace(/index\.pug$/g, 'index.html');
+      }
+      else {
+        files[k].path = k.replace(/([^\/]+)\.pug$/g, '$1/index.html');
+      }
+    }
+  })
+  .use((files:any, metalsmith:any) => {
+    //Adds date information
+    for (let k in files) {
+      const m = k.match(/^.*(^|\/)(\d\d\d\d-\d\d)\/(\d\d)-.*$/);
+      if (m === null) continue;
+      files[k].date = new Date(`${m[2]}-${m[3]}`);
     }
   })
   .use(tags({

@@ -3,6 +3,8 @@ html(lang="en")
   head
     title #{sitename}
   body
+    if date !== undefined
+      div Posted #{date}.
     block template
     block contents
 
