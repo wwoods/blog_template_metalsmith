@@ -1,21 +1,20 @@
 extends default.pug
 
 block template
-  - var depth = 1 + (tag.match(/\//g) || []).length
-  - var allTags = Object.keys(tags)
-  - allTags.sort()
-
+  each part, idx in tagsParents[tag] || []
+    if idx === 0
+      span Parents: &nbsp;
+    else
+      span ,
+    a(href= '../' + part + '/index.html') #{part}
   h1
-    each part, idx in tag.split(/\//g)
-      span /
-      a(href= '../'.repeat(depth) + tag.split(/\//g).slice(0, 1+idx).join('/') + '/index.html') #{part}
-    h1 #{tag}
-  div
-    h2 Children
-    each child in allTags
-      if child.indexOf(tag) === 0
+    a(href= '../' + tag + '/index.html') #{tag}
+  if tagsChildren[tag] !== undefined
+    div
+      h2 Children
+      each child in tagsChildren[tag]
         div
-          a(href= '../'.repeat(depth) + child + '/index.html') #{child}
+          a(href= '../' + child + '/index.html') #{child}
   h2 Posts
   div
     each post in tags[tag]

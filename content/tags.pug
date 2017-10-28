@@ -1,0 +1,5 @@
+block contents
+  each tag in tagsOrdered
+    if tagsParents[tag.name] === undefined
+      div
+        a(href= '../' + tag.path) #{tag.name}

@@ -24,23 +24,56 @@ Metalsmith(path.resolve(__dirname, '..'))
   .clean(true)
   .use(debugMetalsmithPlugin())
   .use((files:any, metalsmith:any) => {
-    //Split tags like test/tag into test and test/tag (parent membership)
+    //Assume tags specified as "a/b/c" denotes that c is a child of b, and
+    //b is a child of a.  The document will be tagged as a, b, and c.
+    const tagsChildren:any = {};
+    const tagsParents:any = {};
+
     for (let k in files) {
       if (files[k].tags === undefined) {
         files[k].tags = [];
       }
       else if (typeof files[k].tags === 'string') {
-        files[k].tags = files[k].tags.split(',').map((v:string) => v.replace(/^\s+|\s+$/g, ''));
+        files[k].tags = files[k].tags.split(',');
       }
-      for (let t of files[k].tags.slice()) {
-        while (true) {
-          const lastSlash = t.lastIndexOf('/');
-          if (lastSlash === -1) break;
-          t = t.substring(0, lastSlash);
-          files[k].tags.push(t);
+      const oldTags = files[k].tags
+          .map((v:string) => v.toLowerCase().replace(/^\s+|\s+$/g, ''))
+          ;
+      const newTags = new Map<string, true>();
+      for (let t of oldTags) {
+        const tsplits = t.split(/\s*\/\s*/g);
+        for (let i = 0, m = tsplits.length - 1; i < m; i++) {
+          const p = tsplits[i];
+          const c = tsplits[i+1];
+          tagsParents[c] = tagsParents[c] || {};
+          tagsParents[c][p] = true;
+          tagsChildren[p] = tagsChildren[p] || {};
+          tagsChildren[p][c] = true;
+        }
+        for (let i = 0, m = tsplits.length; i < m; i++) {
+          newTags.set(tsplits[i], true);
         }
       }
+
+      //Sort the tags
+      files[k].tags = Array.from(newTags.keys());
+      files[k].tags.sort();
     }
+
+    //Sort parents and children
+    const metadata = metalsmith.metadata();
+    metadata.tagsChildren = {};
+    metadata.tagsParents = {};
+    for (let k in tagsChildren) {
+      metadata.tagsChildren[k] = Object.keys(tagsChildren[k]);
+      metadata.tagsChildren[k].sort();
+    }
+    for (let k in tagsParents) {
+      metadata.tagsParents[k] = Object.keys(tagsParents[k]);
+      metadata.tagsParents[k].sort();
+    }
+
+    metalsmith.metadata(metadata);
   })
   .use((files:any, metalsmith:any) => {
     for (let k in files) {
@@ -55,6 +88,18 @@ Metalsmith(path.resolve(__dirname, '..'))
     reverse: true,
     slug: (tag:any) => tag
   }))
+  .use((files:any, metalsmith:any) => {
+    let metadata = metalsmith.metadata();
+    metadata.tagsOrdered = Object.keys(metadata.tags);
+    metadata.tagsOrdered.sort();
+    metadata.tagsOrdered = metadata.tagsOrdered.map((tag:string) => {
+      return {
+        name: tag,
+        path: `tags/${tag}/index.html`,
+      };
+    });
+    metalsmith.metadata(metadata);
+  })
   .use(layoutPlugin({
     pattern: ['**/*.pug']
   }))
