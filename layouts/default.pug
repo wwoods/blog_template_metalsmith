@@ -8,6 +8,8 @@ html(lang="en")
     each tag in tags
       if tag.name !== '_all'
         div Tagged #{tagsRootPath[tag.name]}.
+    each att in attachments || []
+      div Attached #{att}
     block template
     block teaser
     block contents

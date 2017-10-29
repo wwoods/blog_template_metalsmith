@@ -39,6 +39,23 @@ Metalsmith(path.resolve(__dirname, '..'))
         files[k].path = k.replace(/([^\/]+)\.pug$/g, '$1/index.html');
       }
     }
+
+    //Attach files to their local index.pug
+    //TODO: folders should be attached to parent index.pug.
+    for (let k in files) {
+      //Only index.pug has attachments.
+      if (k.search(/index\.pug$/g) !== -1) {
+        files[k].attachments = [];
+      }
+    }
+    for (let k in files) {
+      if (k.search(/index\.pug$/g) !== -1) continue;
+      let folder = k.substring(0, k.lastIndexOf('/'));
+      const f = files[`${folder}/index.pug`];
+      if (f === undefined) continue;
+      if (f.attachments === undefined) continue;
+      f.attachments.push(k);
+    }
   })
   .use(tags({
     handle: 'tags',

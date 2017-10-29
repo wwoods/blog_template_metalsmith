@@ -13,6 +13,8 @@ def copy_and_overwrite(src, dst):
 
             copy_and_overwrite(s, d)
     elif src.endswith('.rst'):
+        if src.endswith('content.rst'):
+            dst = dst[:-len('content.rst')] + 'index.rst'
         with open(src, 'rt') as fs, open(dst[:-4] + '.pug', 'wt') as fd:
             fd.write("\n\nblock contents\n")
             in_el = []
