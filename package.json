@@ -24,7 +24,6 @@
     "@types/multimatch": "^2.1.2",
     "@types/node": "^8.0.47",
     "@types/pug": "^2.0.4",
-    "http-server": "^0.10.0",
-    "metalsmith-tags": "^2.0.0"
+    "http-server": "^0.10.0"
   }
 }

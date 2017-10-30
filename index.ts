@@ -4,7 +4,6 @@ import {tagPlugin} from './plugin/tagging-and-dates';
 
 const Metalsmith = require('metalsmith');  //No types, use old syntax
 const permalinks = require('metalsmith-permalinks');
-const tags = require('metalsmith-tags');
 
 function debugMetalsmithPlugin() {
   return async (files:any, metalsmith:any) => {
@@ -57,14 +56,6 @@ Metalsmith(path.resolve(__dirname, '..'))
       f.attachments.push(k);
     }
   })
-  /*.use(tags({
-    handle: 'tags',
-    path: 'tags/:tag.pug',
-    layout: 'tag.pug',
-    sortBy: 'date',
-    reverse: true,
-    slug: (tag:any) => tag
-  }))*/
   .use(layoutPlugin({
     pattern: ['**/*.pug']
   }))

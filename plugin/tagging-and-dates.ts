@@ -27,9 +27,10 @@ export function tagPlugin() {
     //Adds date information.  Anything with a date must have a title and tags.
     for (let k in files) {
       const m = k.match(/^.*(^|\/)(\d\d\d\d-\d\d)\/(\d\d)-.*$/);
-      if (m === null) continue;
-
-      const date = files[k].date = new Date(`${m[2]}-${m[3]}`);
+      let date:undefined|Date;
+      if (m !== null) {
+        date = files[k].date = new Date(`${m[2]}-${m[3]}`);
+      }
       if (k.match(/^.*\.pug$/) === null) continue;
 
       if (files[k].title === undefined) {
@@ -44,10 +45,12 @@ export function tagPlugin() {
 
       //Add _root and date tag, normalize tags
       let oldTags = files[k].tags;
-      oldTags.push(
-          `${date.getUTCFullYear()}/`
-          + `${date.getUTCFullYear()}-${date.getUTCMonth()+1}/`
+      if (date !== undefined) {
+        oldTags.push(
+            `${date.getUTCFullYear()}/`
+            + `${date.getUTCFullYear()}-${date.getUTCMonth()+1}/`
           + `${date.getUTCFullYear()}-${date.getUTCMonth()+1}-${date.getUTCDate()}`);
+      }
       oldTags = oldTags
           .map((v:string) => v.toLowerCase().replace(/^\s+|\s+$/g, ''))
           ;
@@ -125,7 +128,6 @@ export function tagPlugin() {
           tag.posts.push(tagsPosts[k][fpath]);
         }
         tag.posts.sort((a, b) => {
-          console.log(`[${-(+a.date)}, ${a.title}]`);
           return naturalSort([-(+a.date), a.title], [-(+b.date), b.title]);
         });
       }
