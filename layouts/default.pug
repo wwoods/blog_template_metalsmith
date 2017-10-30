@@ -6,8 +6,8 @@ html(lang="en")
     if date !== undefined
       div Posted #{date}.
     each tag in tags
-      if tag.name !== '_all'
-        div Tagged #{tagsRootPath[tag.name]}.
+      if tag !== '_root'
+        div Tagged #{tagGet(tag).rootPath}.
     each att in attachments || []
       div Attached #{att}
     block template

@@ -2,7 +2,6 @@ import * as multimatch from 'multimatch';
 import * as path from 'path';
 import * as pug from 'pug';
 
-
 export function layoutPlugin(opts:{pattern:Array<string>}) {
   return async (files:any, metalsmith:any) => {
     const metadata = metalsmith.metadata();
@@ -40,6 +39,11 @@ async function _doLayout(fname:string, v:{contents:Buffer}, metadata:any) {
       basedir: path.resolve(__dirname, '../..'),
       filename: fname,
   });
-  v.contents = new Buffer(renderer(params));
+  try {
+    v.contents = new Buffer(renderer(params));
+  }
+  catch (e) {
+    console.error(e, `During ${fname}`);
+  }
 }
 

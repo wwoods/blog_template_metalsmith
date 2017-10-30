@@ -1,4 +1,18 @@
 
+let naturalSort = require('node-natural-sort');
+naturalSort = naturalSort();
+
+export class TagData {
+  children = new Array<string>();
+  parents = new Array<string>();
+  posts = new Array<any>();
+  rootPath:string;
+
+  constructor(public name:string) {
+    this.rootPath = `<unknown>/${name}`;
+  }
+}
+
 export function tagPlugin() {
   return async function(files:any, metalsmith:any) {
     //Assume tags specified as "a/b/c" denotes that c is a child of b, and
@@ -7,6 +21,7 @@ export function tagPlugin() {
     //will be undefined.
     const tagsChildren:any = {};
     const tagsParents:any = {};
+    const tagsPosts:any = {};
     const tagsAny:any = {};
 
     //Adds date information.  Anything with a date must have a title and tags.
@@ -24,10 +39,10 @@ export function tagPlugin() {
         files[k].tags = [];
       }
       else if (typeof files[k].tags === 'string') {
-        files[k].tags = files[k].tags.split(',');
+        files[k].tags = files[k].tags.split(' ');
       }
 
-      //Add _all and date tag, normalize tags
+      //Add _root and date tag, normalize tags
       let oldTags = files[k].tags;
       oldTags.push(
           `${date.getUTCFullYear()}/`
@@ -40,7 +55,7 @@ export function tagPlugin() {
       //Sort out tag inheritance.  a/b/c becomes three tags (a, b, c), and
       //declares c as a child of b, and b as a child of a.
       const newTags = new Map<string, true>();
-      newTags.set('_all', true);
+      newTags.set('_root', true);
       for (let t of oldTags) {
         const tsplits = t.split(/\s*\/\s*/g);
         for (let i = 0, m = tsplits.length - 1; i < m; i++) {
@@ -53,8 +68,13 @@ export function tagPlugin() {
         }
         for (let i = 0, m = tsplits.length; i < m; i++) {
           newTags.set(tsplits[i], true);
-          tagsAny[tsplits[i]] = true;
         }
+      }
+
+      for (let t of newTags.keys()) {
+        tagsAny[t] = true;
+        tagsPosts[t] = tagsPosts[t] || {};
+        tagsPosts[t][k] = files[k];
       }
 
       //Sort the tags
@@ -64,19 +84,54 @@ export function tagPlugin() {
 
     //Sort parents and children
     const metadata = metalsmith.metadata();
-    metadata.tagsChildren = {};
-    metadata.tagsParents = {};
-    for (let k in tagsChildren) {
-      metadata.tagsChildren[k] = Object.keys(tagsChildren[k]);
-      metadata.tagsChildren[k].sort();
+    const tagData = new Map<string, TagData>();
+    metadata.tagArrayOfAll = Object.keys(tagsAny);
+    metadata.tagArrayOfAll.sort(naturalSort);
+    metadata.tagGet = (tag:string) => {
+      const data = tagData.get(tag);
+      if (data === undefined) {
+        return new TagData(tag);
+      }
+      return data;
+    };
+
+    //Any tag without any explicit parent is implicitly parented by _root
+    if (tagsChildren['_root'] === undefined) {
+      tagsChildren['_root'] = {};
     }
-    for (let k in tagsParents) {
-      metadata.tagsParents[k] = Object.keys(tagsParents[k]);
-      metadata.tagsParents[k].sort();
+    for (let k in tagsAny) {
+      if (tagsParents[k] === undefined && k !== '_root') {
+        tagsChildren['_root'][k] = true;
+      }
+    }
+
+    for (let k in tagsAny) {
+      const tag = new TagData(k);
+      tagData.set(k, tag);
+
+      if (tagsChildren[k] !== undefined) {
+        tag.children = Object.keys(tagsChildren[k]);
+        tag.children.sort(naturalSort);
+      }
+      if (tagsParents[k] !== undefined) {
+        tag.parents = Object.keys(tagsParents[k]);
+        tag.parents.sort(naturalSort);
+      }
+      else {
+        tag.parents.push('_root');
+      }
+      if (tagsPosts[k] !== undefined) {
+        for (var fpath in tagsPosts[k]) {
+          tag.posts.push(tagsPosts[k][fpath]);
+        }
+        tag.posts.sort((a, b) => {
+          console.log(`[${-(+a.date)}, ${a.title}]`);
+          return naturalSort([-(+a.date), a.title], [-(+b.date), b.title]);
+        });
+      }
     }
 
     //Find the quickest path for each tag to the root (a tag with no parents).
-    metadata.tagsRootPath = {};
     for (let k in tagsAny) {
       const stack = new Array<[string, string]>();
       const seen = new Set<string>();
@@ -90,12 +145,12 @@ export function tagPlugin() {
         const t = stack.shift();
         if (t === undefined) break;
         const [top, path] = t;
-        if (metadata.tagsParents[top] === undefined) {
+        if (top === '_root' || tagsParents[top] === undefined) {
           //Root level.  Have a path.
           done = path;
           break;
         }
-        for (const p of metadata.tagsParents[k]) {
+        for (const p in tagsParents[top]) {
           if (seen.has(p)) continue;
           seen.add(p);
           stack.push([p, `${p}/${path}`]);
@@ -105,10 +160,22 @@ export function tagPlugin() {
       if (done === undefined) {
         done = k;
       }
-      metadata.tagsRootPath[k] = done;
+      metadata.tagGet(k).rootPath = done;
     }
 
     metalsmith.metadata(metadata);
+
+    //Make the tag pages
+    for (const t of metadata.tagArrayOfAll) {
+      const path = `tags/${t}.pug`;
+      files[path] = {
+        layout: 'tag.pug',
+        contents: '',
+        tag: t,
+        tags: [],
+        path: path,
+      };
+    }
   };
 }
 

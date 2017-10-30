@@ -27,7 +27,7 @@ Metalsmith(path.resolve(__dirname, '..'))
   //Metalsmith plugins do is manipulate the files array, which maps paths to
   //some metadata (including "contents", the file's contents).
   .use(debugMetalsmithPlugin())
-  //Assign date and tag metadata.
+  //Assign date and tag metadata, build tag sites
   .use(tagPlugin())
   .use((files:any, metalsmith:any) => {
     //Sets .path, as all paths are now fixed
@@ -57,26 +57,14 @@ Metalsmith(path.resolve(__dirname, '..'))
       f.attachments.push(k);
     }
   })
-  .use(tags({
+  /*.use(tags({
     handle: 'tags',
     path: 'tags/:tag.pug',
     layout: 'tag.pug',
     sortBy: 'date',
     reverse: true,
     slug: (tag:any) => tag
-  }))
-  .use((files:any, metalsmith:any) => {
-    let metadata = metalsmith.metadata();
-    metadata.tagsOrdered = Object.keys(metadata.tags);
-    metadata.tagsOrdered.sort();
-    metadata.tagsOrdered = metadata.tagsOrdered.map((tag:string) => {
-      return {
-        name: tag,
-        path: `tags/${tag}/index.html`,
-      };
-    });
-    metalsmith.metadata(metadata);
-  })
+  }))*/
   .use(layoutPlugin({
     pattern: ['**/*.pug']
   }))

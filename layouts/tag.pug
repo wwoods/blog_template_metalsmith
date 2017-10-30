@@ -3,23 +3,23 @@ extends default.pug
 block template
   - var pathTagsRoot = (path === 'index.html' ? 'tags/' : '../')
 
-  each part, idx in tagsParents[tag] || []
+  each part, idx in tagGet(tag).parents
     if idx === 0
       span Parents: &nbsp;
     else
       span ,
     a(href= pathTagsRoot + part + '/index.html') #{part}
   h1
-    a(href= pathTagsRoot + tag + '/index.html') #{tagsRootPath[tag]}
-  if tagsChildren[tag] !== undefined
+    a(href= pathTagsRoot + tag + '/index.html') #{tagGet(tag).rootPath}
+  if tagGet(tag).children.length !== 0
     div
       h2 Children
-      each child in tagsChildren[tag]
+      each child in tagGet(tag).children
         div
           a(href= pathTagsRoot + child + '/index.html') #{child}
   h2 Posts
   div
-    each post in tags[tag]
+    each post in tagGet(tag).posts
       div
         a(href= pathTagsRoot + '../' + post.path) #{post.title}
 
