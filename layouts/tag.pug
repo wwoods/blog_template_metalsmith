@@ -10,7 +10,7 @@ block template
       span ,
     a(href= pathTagsRoot + part + '/index.html') #{part}
   h1
-    a(href= pathTagsRoot + tag + '/index.html') #{tagGet(tag).rootPath}
+    a(href= pathTagsRoot + tag + '/index.html') #{title || tagGet(tag).rootPath}
   if tagGet(tag).children.length !== 0
     div
       h2 Children

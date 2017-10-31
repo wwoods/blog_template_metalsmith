@@ -24,6 +24,8 @@ export function tagPlugin() {
     const tagsPosts:any = {};
     const tagsAny:any = {};
 
+    const metadata = metalsmith.metadata();
+
     //Adds date information.  Anything with a date must have a title and tags.
     for (let k in files) {
       const m = k.match(/^.*(^|\/)(\d\d\d\d-\d\d)\/(\d\d)-.*$/);
@@ -34,7 +36,7 @@ export function tagPlugin() {
       if (k.match(/^.*\.pug$/) === null) continue;
 
       if (files[k].title === undefined) {
-        files[k].title = k;
+        files[k].title = (k === 'index.pug' ? metadata.sitename : k);
       }
       if (files[k].tags === undefined) {
         files[k].tags = [];
@@ -86,7 +88,6 @@ export function tagPlugin() {
     }
 
     //Sort parents and children
-    const metadata = metalsmith.metadata();
     const tagData = new Map<string, TagData>();
     metadata.tagArrayOfAll = Object.keys(tagsAny);
     metadata.tagArrayOfAll.sort(naturalSort);
@@ -120,7 +121,7 @@ export function tagPlugin() {
         tag.parents = Object.keys(tagsParents[k]);
         tag.parents.sort(naturalSort);
       }
-      else {
+      else if (k !== '_root') {
         tag.parents.push('_root');
       }
       if (tagsPosts[k] !== undefined) {
@@ -167,16 +168,30 @@ export function tagPlugin() {
 
     metalsmith.metadata(metadata);
 
-    //Make the tag pages
+    //Root's page is index
+    if (files['index.pug'].layout === 'tag.pug') {
+      //If index treated as tag, copy it to root tag page.
+      files['index.pug'].tag = '_root';
+      files['index.pug'].tags = [];
+      files['tags/_root.pug'] = Object.assign({}, files['index.pug']);
+    }
+
+    //Make homoepages for each tag (that doesn't already have a page)
     for (const t of metadata.tagArrayOfAll) {
       const path = `tags/${t}.pug`;
-      files[path] = {
-        layout: 'tag.pug',
-        contents: '',
-        tag: t,
-        tags: [],
-        path: path,
-      };
+      if (files[path] !== undefined) {
+        //Custom page.
+        files[path].tag = t;
+      }
+      else {
+        files[path] = {
+          layout: 'tag.pug',
+          contents: '',
+          tag: t,
+          tags: [],
+          path: path,
+        };
+      }
     }
   };
 }
