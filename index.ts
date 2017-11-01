@@ -27,7 +27,20 @@ Metalsmith(path.resolve(__dirname, '..'))
   //some metadata (including "contents", the file's contents).
   .use(debugMetalsmithPlugin())
   //Assign date and tag metadata, build tag sites
-  .use(tagPlugin())
+  .use(tagPlugin({
+    //Fields that should register as a date (literally casts as Date object)
+    dates: ['date', 'mdate'],
+    //Dates that should be applied as tags (with optional prefix tag).
+    tagDates: {
+      'date': '',
+      'mdate': 'modified',
+    },
+    //How to convert file names to date fields
+    folderDates: [
+      //First match applies.  Dates look like .../YYYY-MM/DD-...
+      [['**/*.pug'], 'date'],
+    ]
+  }))
   .use((files:any, metalsmith:any) => {
     //Sets .path, as all paths are now fixed
     for (let k in files) {

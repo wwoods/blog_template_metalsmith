@@ -18,6 +18,11 @@ export function layoutPlugin(opts:{pattern:Array<string>}) {
       let newPath = path.join(fileInfo.dir, fileInfo.name + '.html');
       files[newPath] = data;
 
+      if (data.layout === null) {
+        //No layout
+        continue;
+      }
+
       promises.push(_doLayout(k, data, metadata));
     }
     await Promise.all(promises);

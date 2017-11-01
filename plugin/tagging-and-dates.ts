@@ -1,3 +1,4 @@
+import * as multimatch from 'multimatch';
 
 let naturalSort = require('node-natural-sort');
 naturalSort = naturalSort();
@@ -13,7 +14,11 @@ export class TagData {
   }
 }
 
-export function tagPlugin() {
+export function tagPlugin(
+    {dates, tagDates, folderDates}:{
+      dates:Array<string>,
+      tagDates:{[name:string]: string},
+      folderDates:Array<[Array<string>, string]>}) {
   return async function(files:any, metalsmith:any) {
     //Assume tags specified as "a/b/c" denotes that c is a child of b, and
     //b is a child of a.  The document will be tagged as a, b, and c.
@@ -28,10 +33,17 @@ export function tagPlugin() {
 
     //Adds date information.  Anything with a date must have a title and tags.
     for (let k in files) {
-      const m = k.match(/^.*(^|\/)(\d\d\d\d-\d\d)\/(\d\d)-.*$/);
-      let date:undefined|Date;
-      if (m !== null) {
-        date = files[k].date = new Date(`${m[2]}-${m[3]}`);
+      //Assign a date from folder path
+      for (let possDate of folderDates) {
+        if (multimatch([k], possDate[0]).length === 0) {
+          continue;
+        }
+
+        const m = k.match(/^.*(^|\/)(\d\d\d\d-\d\d)\/(\d\d)-.*$/);
+        if (m !== null) {
+          files[k][possDate[1]] = new Date(`${m[2]}-${m[3]}`);
+        }
+        break;
       }
       if (k.match(/^.*\.pug$/) === null) continue;
 
@@ -47,11 +59,22 @@ export function tagPlugin() {
 
       //Add _root and date tag, normalize tags
       let oldTags = files[k].tags;
-      if (date !== undefined) {
-        oldTags.push(
-            `${date.getUTCFullYear()}/`
-            + `${date.getUTCFullYear()}-${date.getUTCMonth()+1}/`
-          + `${date.getUTCFullYear()}-${date.getUTCMonth()+1}-${date.getUTCDate()}`);
+      for (let dateName in tagDates) {
+        const date = files[k][dateName];
+        if (date !== undefined) {
+          let prefix:string = '', fprefix:string = '';
+          const p = tagDates[dateName];
+          if (p !== '') {
+            fprefix = `${p}/`;
+            prefix = `${p}-`;
+          }
+          const ndate = new Date(date);
+          files[k][dateName] = ndate;
+          oldTags.push(
+              `${fprefix}${prefix}${ndate.getUTCFullYear()}/`
+              + `${prefix}${ndate.getUTCFullYear()}-${ndate.getUTCMonth()+1}/`
+              + `${prefix}${ndate.getUTCFullYear()}-${ndate.getUTCMonth()+1}-${ndate.getUTCDate()}`);
+        }
       }
       oldTags = oldTags
           .map((v:string) => v.toLowerCase().replace(/^\s+|\s+$/g, ''))
@@ -173,10 +196,16 @@ export function tagPlugin() {
       //If index treated as tag, copy it to root tag page.
       files['index.pug'].tag = '_root';
       files['index.pug'].tags = [];
-      files['tags/_root.pug'] = Object.assign({}, files['index.pug']);
+      files['tags/_root.pug'] = {
+        layout: null,
+        contents: new Buffer(`
+            <meta http-equiv="refresh" content="0; url=/">
+            <link rel="canonical" href="/" />
+        `),
+      };
     }
 
-    //Make homoepages for each tag (that doesn't already have a page)
+    //Make homepages for each tag (that doesn't already have a page)
     for (const t of metadata.tagArrayOfAll) {
       const path = `tags/${t}.pug`;
       if (files[path] !== undefined) {
