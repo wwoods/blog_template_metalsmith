@@ -3,6 +3,7 @@ import {layoutPlugin} from './plugin/layout';
 import {tagPlugin} from './plugin/tagging-and-dates';
 
 const Metalsmith = require('metalsmith');  //No types, use old syntax
+const metalsmithSass = require('metalsmith-sass');
 const permalinks = require('metalsmith-permalinks');
 
 function debugMetalsmithPlugin() {
@@ -71,6 +72,8 @@ Metalsmith(path.resolve(__dirname, '..'))
   })
   .use(layoutPlugin({
     pattern: ['**/*.pug']
+  }))
+  .use(metalsmithSass({
   }))
   .use(permalinks({
     //TODO
