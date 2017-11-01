@@ -2,6 +2,8 @@ import * as path from 'path';
 import {layoutPlugin} from './plugin/layout';
 import {tagPlugin} from './plugin/tagging-and-dates';
 
+import * as indexConfig from './indexConfig';
+
 const Metalsmith = require('metalsmith');  //No types, use old syntax
 const metalsmithSass = require('metalsmith-sass');
 const permalinks = require('metalsmith-permalinks');
@@ -27,21 +29,8 @@ Metalsmith(path.resolve(__dirname, '..'))
   //Metalsmith plugins do is manipulate the files array, which maps paths to
   //some metadata (including "contents", the file's contents).
   .use(debugMetalsmithPlugin())
-  //Assign date and tag metadata, build tag sites
-  .use(tagPlugin({
-    //Fields that should register as a date (literally casts as Date object)
-    dates: ['date', 'mdate'],
-    //Dates that should be applied as tags (with optional prefix tag).
-    tagDates: {
-      'date': '',
-      'mdate': 'modified',
-    },
-    //How to convert file names to date fields
-    folderDates: [
-      //First match applies.  Dates look like .../YYYY-MM/DD-...
-      [['**/*.pug'], 'date'],
-    ]
-  }))
+  //Assign date and tag metadata, build tag sites (configured via content/tags.json)
+  .use(tagPlugin(indexConfig.config))
   .use((files:any, metalsmith:any) => {
     //Sets .path, as all paths are now fixed
     for (let k in files) {

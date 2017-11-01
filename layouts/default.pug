@@ -11,7 +11,10 @@ html(lang="en")
         div Posted #{date}.
       each tag in tags
         if tag !== '_root'
-          div Tagged #{tagGet(tag).rootPath}.
+          div
+            span Tagged &nbsp;
+            a(href="/tags/" + tag) #{tagGet(tag).rootPath}
+            span .
       each att in attachments || []
         div Attached #{att}
       block template

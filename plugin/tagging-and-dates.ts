@@ -3,118 +3,159 @@ import * as multimatch from 'multimatch';
 let naturalSort = require('node-natural-sort');
 naturalSort = naturalSort();
 
+export interface TagPluginConfig {
+  dateFields: {
+    [name:string]: {tag?:true, tagPrefix?:string}
+  },
+  folders: Array<[Array<string>, {dateField?:string, tags?:Array<string>}]>,
+  tagHierarchy: Array<string>,
+  tagSettings: {[tag:string]: {sort?:Array<string>}},
+}
+
 export class TagData {
   children = new Array<string>();
   parents = new Array<string>();
   posts = new Array<any>();
+  relatives = new Set<string>();  // includes self, _root
   rootPath:string;
+  sort?:Array<string>;
 
   constructor(public name:string) {
     this.rootPath = `<unknown>/${name}`;
   }
 }
 
-export function tagPlugin(
-    {dates, tagDates, folderDates}:{
-      dates:Array<string>,
-      tagDates:{[name:string]: string},
-      folderDates:Array<[Array<string>, string]>}) {
+export function tagPlugin(config:TagPluginConfig) {
   return async function(files:any, metalsmith:any) {
-    //Assume tags specified as "a/b/c" denotes that c is a child of b, and
-    //b is a child of a.  The document will be tagged as a, b, and c.
-    //For tags without children or without parents, tagsChildren and tagsParent
-    //will be undefined.
-    const tagsChildren:any = {};
-    const tagsParents:any = {};
-    const tagsPosts:any = {};
-    const tagsAny:any = {};
-
     const metadata = metalsmith.metadata();
+    const noAutoIndex = new Set<string>();  // do not auto index these files
+    const tagParents = new Map<string, Set<string>>();
+    const tagParentsAdd = (p:string, c:string) => {
+      let m = tagParents.get(c);
+      if (m === undefined) {
+        m = new Set<string>();
+        tagParents.set(c, m);
+      }
+      m.add(p);
+    };
 
-    //Adds date information.  Anything with a date must have a title and tags.
+    //FIRST assign dates and tags based on folder names {{{1
     for (let k in files) {
-      //Assign a date from folder path
-      for (let possDate of folderDates) {
-        if (multimatch([k], possDate[0]).length === 0) {
-          continue;
+      const file = files[k];
+
+      //Regularize tags
+      if (file.tags === undefined) {
+        file.tags = [];
+      }
+      else if (typeof file.tags === 'string') {
+        file.tags = file.tags.split(/\s+/g);
+      }
+      //lowercase, strip surrounding whitespace
+      file.tags = file.tags.map((v:string) => v.toLowerCase().replace(/^\s+|\s+$/g, ''));
+      file.tags = new Set<string>(file.tags);
+
+      //Find first matching folder
+      for (let folder of config.folders) {
+        if (multimatch([k], folder[0]).length === 0) continue;
+
+        const fc = folder[1];
+        //Found a match.  Do we even want to add metadata to this file?
+        //TODO: Allow adding metadata to e.g. PDF automatically via config.
+        if (k.match(/^.*\.pug$/) === null) {
+          noAutoIndex.add(k);
+          break;
         }
 
-        const m = k.match(/^.*(^|\/)(\d\d\d\d-\d\d)\/(\d\d)-.*$/);
-        if (m !== null) {
-          files[k][possDate[1]] = new Date(`${m[2]}-${m[3]}`);
+        //Add default title
+        if (file.title === undefined) {
+          file.title = (k === 'index.pug' ? metadata.sitename : k);
         }
+
+        if (fc.tags !== undefined) {
+          for (const t of fc.tags) file.tags.add(t);
+        }
+        if (fc.dateField !== undefined) {
+          const m = k.match(/^.*(^|\/)(\d\d\d\d-\d\d)\/(\d\d)-.*$/);
+          if (m !== null) {
+            file[fc.dateField] = new Date(`${m[2]}-${m[3]}`);
+          }
+        }
+
+        //Stop on first match.
         break;
       }
-      if (k.match(/^.*\.pug$/) === null) continue;
-
-      if (files[k].title === undefined) {
-        files[k].title = (k === 'index.pug' ? metadata.sitename : k);
-      }
-      if (files[k].tags === undefined) {
-        files[k].tags = [];
-      }
-      else if (typeof files[k].tags === 'string') {
-        files[k].tags = files[k].tags.split(' ');
-      }
-
-      //Add _root and date tag, normalize tags
-      let oldTags = files[k].tags;
-      for (let dateName in tagDates) {
-        const date = files[k][dateName];
-        if (date !== undefined) {
-          let prefix:string = '', fprefix:string = '';
-          const p = tagDates[dateName];
-          if (p !== '') {
-            fprefix = `${p}/`;
-            prefix = `${p}-`;
-          }
-          const ndate = new Date(date);
-          files[k][dateName] = ndate;
-          oldTags.push(
-              `${fprefix}${prefix}${ndate.getUTCFullYear()}/`
-              + `${prefix}${ndate.getUTCFullYear()}-${ndate.getUTCMonth()+1}/`
-              + `${prefix}${ndate.getUTCFullYear()}-${ndate.getUTCMonth()+1}-${ndate.getUTCDate()}`);
-        }
-      }
-      oldTags = oldTags
-          .map((v:string) => v.toLowerCase().replace(/^\s+|\s+$/g, ''))
-          ;
-
-      //Sort out tag inheritance.  a/b/c becomes three tags (a, b, c), and
-      //declares c as a child of b, and b as a child of a.
-      const newTags = new Map<string, true>();
-      newTags.set('_root', true);
-      for (let t of oldTags) {
-        const tsplits = t.split(/\s*\/\s*/g);
-        for (let i = 0, m = tsplits.length - 1; i < m; i++) {
-          const p = tsplits[i];
-          const c = tsplits[i+1];
-          tagsParents[c] = tagsParents[c] || {};
-          tagsParents[c][p] = true;
-          tagsChildren[p] = tagsChildren[p] || {};
-          tagsChildren[p][c] = true;
-        }
-        for (let i = 0, m = tsplits.length; i < m; i++) {
-          newTags.set(tsplits[i], true);
-        }
-      }
-
-      for (let t of newTags.keys()) {
-        tagsAny[t] = true;
-        tagsPosts[t] = tagsPosts[t] || {};
-        tagsPosts[t][k] = files[k];
-      }
-
-      //Sort the tags
-      files[k].tags = Array.from(newTags.keys());
-      files[k].tags.sort();
     }
 
-    //Sort parents and children
+    //SECOND cast date fields to Date type, assign tags based on Date. {{{1
+    for (let k in files) {
+      if (noAutoIndex.has(k)) continue;
+
+      const file = files[k];
+      for (let df in config.dateFields) {
+        if (file[df] !== undefined && !(file[df] instanceof Date)) {
+          file[df] = new Date(file[df]);
+        }
+        if (file[df] === undefined) continue;
+
+        if (config.dateFields[df].tag) {
+          const d = file[df];
+          let p = config.dateFields[df].tagPrefix;
+          let tagLast = `${d.getUTCFullYear()}`;
+          let hierarchyEntry = [];
+          if (p !== '' && p !== undefined) {
+            hierarchyEntry.push(p);
+            tagLast = `${p}-${tagLast}`;
+          }
+          hierarchyEntry.push(tagLast);
+
+          tagLast = `${tagLast}-${d.getUTCMonth()+1}`;
+          hierarchyEntry.push(tagLast);
+
+          tagLast = `${tagLast}-${d.getUTCDate()}`;
+          hierarchyEntry.push(tagLast);
+          file.tags.add(tagLast);
+
+          config.tagHierarchy.push(hierarchyEntry.join('/'));
+        }
+      }
+
+      //No tags? Implicit _root
+      if (file.tags.length === 0) {
+        file.tags.add('_root');
+      }
+    }
+
+    //THIRD iterate tagHierarchy, collect all possible tags
+    for (const path of config.tagHierarchy) {
+      const parts = path.split(/\s*\/\s*/g).map((v) => v.toLowerCase().replace(/^\s+|\s+$/g, ''));
+      //Part 0 becomes parent of root!
+      tagParentsAdd('_root', parts[0]);
+      for (let i = 0, m = parts.length; i < m - 1; i++) {
+        tagParentsAdd(parts[i], parts[i+1]);
+      }
+    }
+
+    //Convert each file's tags to a sorted array; ensure all tags have at least
+    //one parent.
+    for (const k in files) {
+      const t = files[k].tags = Array.from(files[k].tags);
+      t.sort(naturalSort);
+
+      for (const t of files[k].tags) {
+        if (tagParents.get(t) !== undefined) continue;
+
+        //No parents for this tag.  Assume root parent.
+        tagParentsAdd('_root', t);
+      }
+    }
+
+    //Now all tags have a parent.
+    if (tagParents.has('_root')) tagParents.delete('_root');
     const tagData = new Map<string, TagData>();
-    metadata.tagArrayOfAll = Object.keys(tagsAny);
+    metadata.tagArrayOfAll = Array.from(tagParents.keys());
+    metadata.tagArrayOfAll.push('_root');
     metadata.tagArrayOfAll.sort(naturalSort);
-    metadata.tagGet = (tag:string) => {
+    const tagGet = metadata.tagGet = (tag:string) => {
       const data = tagData.get(tag);
       if (data === undefined) {
         return new TagData(tag);
@@ -122,61 +163,67 @@ export function tagPlugin(
       return data;
     };
 
-    //Any tag without any explicit parent is implicitly parented by _root
-    if (tagsChildren['_root'] === undefined) {
-      tagsChildren['_root'] = {};
-    }
-    for (let k in tagsAny) {
-      if (tagsParents[k] === undefined && k !== '_root') {
-        tagsChildren['_root'][k] = true;
-      }
-    }
-
-    for (let k in tagsAny) {
+    for (let k of metadata.tagArrayOfAll) {
       const tag = new TagData(k);
       tagData.set(k, tag);
 
-      if (tagsChildren[k] !== undefined) {
-        tag.children = Object.keys(tagsChildren[k]);
-        tag.children.sort(naturalSort);
+      const tp = tagParents.get(k);
+      if (tp === undefined) {
+        if (k !== '_root') throw new Error("Bad assumption");
+        tag.parents = [];
       }
-      if (tagsParents[k] !== undefined) {
-        tag.parents = Object.keys(tagsParents[k]);
-        tag.parents.sort(naturalSort);
+      else {
+        tag.parents = Array.from(tp);
       }
-      else if (k !== '_root') {
-        tag.parents.push('_root');
-      }
-      if (tagsPosts[k] !== undefined) {
-        for (var fpath in tagsPosts[k]) {
-          tag.posts.push(tagsPosts[k][fpath]);
+      tag.parents.sort(naturalSort);
+
+      //Assign a sort pattern for posts?
+      const ts = config.tagSettings[k];
+      if (ts !== undefined) {
+        if (ts.sort !== undefined) {
+          tag.sort = ts.sort;
         }
-        tag.posts.sort((a, b) => {
-          return naturalSort([-(+a.date), a.title], [-(+b.date), b.title]);
-        });
       }
     }
 
-    //Find the quickest path for each tag to the root (a tag with no parents).
-    for (let k in tagsAny) {
+    //Now that sorts have been set, find all relatives, and assume same sort
+    //as first relative with specified sort.
+    //Also iterate parents and add children.
+    for (const [k, tag] of tagData.entries()) {
+      for (const p of tag.parents) {
+        tagGet(p).children.push(k);
+      }
+      //Resolve relatives to root (including shortest path for "rootName")
       const stack = new Array<[string, string]>();
       const seen = new Set<string>();
       stack.push([k, k]);
       seen.add(k);
       let done:string|undefined;
       //Root path for dates is the date.
-      if (k.match(/\d\d\d\d(-\d\d?(-\d\d?)?)?/) !== null) done = k;
+      if (k.match(/(^|-)\d\d\d\d(-\d\d?(-\d\d?)?)?$/) !== null) done = k;
       //Breadth-first search...
-      while (done === undefined) {
+      while (true) {
         const t = stack.shift();
         if (t === undefined) break;
         const [top, path] = t;
-        if (top === '_root' || tagsParents[top] === undefined) {
-          //Root level.  Have a path.
-          done = path;
-          break;
+        if (top === '_root') {
+          //Root level.  Have a path.  Only happens once due to "seen"
+          if (done === undefined) {
+            done = path;
+            //Omit '_root/' leader
+            if (k !== top) done = done.substring(6);
+          }
+          //Root has no parents; continue, not break, because we still want
+          //to gather all relatives.
+          continue;
         }
-        for (const p in tagsParents[top]) {
+        if (tag.sort === undefined) {
+          const s = tagGet(top).sort;
+          if (s !== undefined) {
+            tag.sort = s;
+          }
+        }
+        for (const p of tagParents.get(top) as Set<string>) {
           if (seen.has(p)) continue;
           seen.add(p);
           stack.push([p, `${p}/${path}`]);
@@ -186,7 +233,42 @@ export function tagPlugin(
       if (done === undefined) {
         done = k;
       }
-      metadata.tagGet(k).rootPath = done;
+      tag.relatives = seen;
+      tag.rootPath = done;
+    }
+
+    //Add posts to each tag
+    for (let k in files) {
+      const file = files[k];
+      const seen = new Set<string>();
+      for (const t of file.tags) {
+        for (const r of tagGet(t).relatives) {
+          if (seen.has(r)) continue;
+          seen.add(r);
+          tagGet(r).posts.push(file);
+        }
+      }
+    }
+
+    //Sort each tag's posts and children
+    for (let [k, tag] of tagData.entries()) {
+      tag.children.sort(naturalSort);
+
+      const sort = tag.sort || ['date', 'title'];
+      const p = (a:any) => {
+        const vals = new Array<any>();
+        for (const s of sort) {
+          let v:any = a[s];
+          if (v instanceof Date) {
+            v = -(+v);
+          }
+          vals.push(v);
+        }
+        return vals;
+      };
+      tag.posts.sort((a, b) => {
+        return naturalSort(p(a), p(b));
+      });
     }
 
     metalsmith.metadata(metadata);

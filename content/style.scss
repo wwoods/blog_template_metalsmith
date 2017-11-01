@@ -2,6 +2,7 @@ body {
   background-color: #ddd;
   font-family: sans-serif;
   font-size: 12pt;
+  line-height: 1.2;
 
   .header {
     display: block;
@@ -22,5 +23,48 @@ body {
       padding: 1.5em;
     }
   }
+
+  /** Generic bullets */
+  ol, dl, ul {
+    display: block;
+    text-align: left;
+    margin: 0 0 0 1em; }
+
+  ol {
+    list-style-type: decimal; }
+  ol.loweralpha {
+    list-style-type: lower-alpha; }
+
+  ul {
+    list-style-type: none;
+    > li {
+      //In-line markers that support multiple children.
+      margin-left: 2em;
+      position: relative; }
+    > li:before {
+      font-size: 80%;
+      display: inline-block;
+      position: absolute;
+      left: -2em;
+    }
+  }
+
+  // Unicode from https://www.w3schools.com/charsets/ref_utf_geometric.asp
+  ul:not(.columns-list) {
+    > li:before { content: "\25b6" } }
+  ul:not(.columns-list) ul {
+    > li:before { content: "\25a2" } }
+  ul:not(.columns-list) ul ul {
+    font-size: 0.9em;
+    > li:before { content: "\25b2" } }
+
+  ul:not(.columns-list) ul, ul:not(.columns-list) ol,
+  ol:not(.columns-list) ol, ol:not(.columns-list) ul {
+    display: block;
+    margin-left: 1.25em;
+    margin-top: 0.5em; }
+
+  ul:not(.columns-list) {
+    margin-bottom: 0.5em; }
 }
 
