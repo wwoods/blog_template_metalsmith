@@ -27,7 +27,7 @@ Metalsmith(path.resolve(__dirname, '..'))
   //some metadata (including "contents", the file's contents).
   .use(debugMetalsmithPlugin())
   //Assign date and tag metadata, build tag sites (configured via content/tags.json)
-  .use(tagPlugin(indexConfig.config))
+  .use(tagPlugin(indexConfig.tagConfig))
   .use((files:any, metalsmith:any) => {
     //Sets .path, as all paths are now fixed
     for (let k in files) {
