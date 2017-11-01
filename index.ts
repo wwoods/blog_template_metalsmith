@@ -17,10 +17,7 @@ function debugMetalsmithPlugin() {
 }
 
 Metalsmith(path.resolve(__dirname, '..'))
-  .metadata({
-    sitename: "Example Metalsmith Site",
-    author: "Walt Woods",
-  })
+  .metadata(indexConfig.siteMetadata)
   .source('./content')
   .destination('./build')
   //Delete everything in ./build?
@@ -44,6 +41,7 @@ Metalsmith(path.resolve(__dirname, '..'))
 
     //Attach files to their local index.pug
     //TODO: folders should be attached to parent index.pug.
+    //TODO: attach things without an index.pug.  Basically, make it impossible to "lose" a file.
     for (let k in files) {
       //Only index.pug has attachments.
       if (k.search(/index\.pug$/g) !== -1) {

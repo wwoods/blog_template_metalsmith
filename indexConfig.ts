@@ -1,6 +1,12 @@
+import {SiteMetadata} from './plugin/site-config';
 import {TagPluginConfig} from './plugin/tagging-and-dates';
 
-export const config:TagPluginConfig = {
+export const siteMetadata:SiteMetadata = {
+  sitename: "Example Site",
+  author: "Walt Woods",
+};
+
+export const tagConfig:TagPluginConfig = {
   "dateFields": {
     "date": {
       "tag": true
