@@ -6,7 +6,6 @@ import * as indexConfig from './indexConfig';
 
 const Metalsmith = require('metalsmith');  //No types, use old syntax
 const metalsmithSass = require('metalsmith-sass');
-const permalinks = require('metalsmith-permalinks');
 
 let naturalSort = require('node-natural-sort');
 naturalSort = naturalSort();
@@ -80,11 +79,12 @@ Metalsmith(path.resolve(__dirname, '..'))
   .use((files:any, metalsmith:any) => {
     //Sets .path, as all paths are now fixed
     for (let k in files) {
-      if (k.search(/index\.pug$/g) !== -1) {
-        files[k].path = k.replace(/index\.pug$/g, 'index.html');
+      if (k.search(/\/index\.pug$/g) !== -1) {
+        files[k].path = k.replace(/\/index\.pug$/g, '/');
       }
       else {
-        files[k].path = k.replace(/([^\/]+)\.pug$/g, '$1/index.html');
+        //Permalinks plugin redirection
+        files[k].path = k.replace(/([^\/]+)\.pug$/g, '$1');
       }
     }
   })
@@ -93,10 +93,6 @@ Metalsmith(path.resolve(__dirname, '..'))
   }))
   .use(metalsmithSass({
   }))
-  .use(permalinks({
-    //TODO
-  }))
-  .use(debugMetalsmithPlugin())
   .build((err:any) => {
     if (err) throw err;
   })

@@ -3,6 +3,8 @@ import * as multimatch from 'multimatch';
 let naturalSort = require('node-natural-sort');
 naturalSort = naturalSort();
 
+const ROOT_TAG = 'index'; // get it?
+
 export interface TagPluginConfig {
   dateFields: {
     [name:string]: {tag?:true, tagPrefix?:string}
@@ -16,7 +18,8 @@ export class TagData {
   children = new Array<string>();
   parents = new Array<string>();
   posts = new Array<any>();
-  relatives = new Set<string>();  // includes self, _root
+  path:string;
+  relatives = new Set<string>();  // includes self, ROOT_TAG
   rootPath:string;
   sort?:Array<string>;
 
@@ -68,7 +71,18 @@ export function tagPlugin(config:TagPluginConfig) {
 
         //Add default title
         if (file.title === undefined) {
-          file.title = (k === 'index.pug' ? metadata.sitename : k);
+          if (k === 'index.pug') {
+            file.title = metadata.sitename;
+          }
+          else {
+            const m = k.match(/\/index\.pug$/);
+            if (m !== null) {
+              file.title = k.substring(0, m.index);
+            }
+            else {
+              file.title = k.replace(/\.pug$/, '');
+            }
+          }
         }
 
         if (fc.tags !== undefined) {
@@ -119,9 +133,9 @@ export function tagPlugin(config:TagPluginConfig) {
         }
       }
 
-      //No tags? Implicit _root
+      //No tags? Implicit root
       if (file.tags.length === 0) {
-        file.tags.add('_root');
+        file.tags.add(ROOT_TAG);
       }
     }
 
@@ -129,7 +143,7 @@ export function tagPlugin(config:TagPluginConfig) {
     for (const path of config.tagHierarchy) {
       const parts = path.split(/\s*\/\s*/g).map((v) => v.toLowerCase().replace(/^\s+|\s+$/g, ''));
       //Part 0 becomes parent of root!
-      tagParentsAdd('_root', parts[0]);
+      tagParentsAdd(ROOT_TAG, parts[0]);
       for (let i = 0, m = parts.length; i < m - 1; i++) {
         tagParentsAdd(parts[i], parts[i+1]);
       }
@@ -145,15 +159,15 @@ export function tagPlugin(config:TagPluginConfig) {
         if (tagParents.get(t) !== undefined) continue;
 
         //No parents for this tag.  Assume root parent.
-        tagParentsAdd('_root', t);
+        tagParentsAdd(ROOT_TAG, t);
       }
     }
 
     //Now all tags have a parent.
-    if (tagParents.has('_root')) tagParents.delete('_root');
+    if (tagParents.has(ROOT_TAG)) tagParents.delete(ROOT_TAG);
     const tagData = new Map<string, TagData>();
     metadata.tagArrayOfAll = Array.from(tagParents.keys());
-    metadata.tagArrayOfAll.push('_root');
+    metadata.tagArrayOfAll.push(ROOT_TAG);
     metadata.tagArrayOfAll.sort(naturalSort);
     const tagGet = metadata.tagGet = (tag:string) => {
       const data = tagData.get(tag);
@@ -167,9 +181,11 @@ export function tagPlugin(config:TagPluginConfig) {
       const tag = new TagData(k);
       tagData.set(k, tag);
 
+      tag.path = `/tags/${k}`;
+
       const tp = tagParents.get(k);
       if (tp === undefined) {
-        if (k !== '_root') throw new Error("Bad assumption");
+        if (k !== ROOT_TAG) throw new Error("Bad assumption");
         tag.parents = [];
       }
       else {
@@ -206,11 +222,11 @@ export function tagPlugin(config:TagPluginConfig) {
         const t = stack.shift();
         if (t === undefined) break;
         const [top, path] = t;
-        if (top === '_root') {
+        if (top === ROOT_TAG) {
           //Root level.  Have a path.  Only happens once due to "seen"
           if (done === undefined) {
             done = path;
-            //Omit '_root/' leader
+            //Omit '${ROOT_TAG}/' leader
             if (k !== top) done = done.substring(6);
           }
           //Root has no parents; continue, not break, because we still want
@@ -276,9 +292,9 @@ export function tagPlugin(config:TagPluginConfig) {
     //Root's page is index
     if (files['index.pug'].layout === 'tag.pug') {
       //If index treated as tag, copy it to root tag page.
-      files['index.pug'].tag = '_root';
+      files['index.pug'].tag = ROOT_TAG;
       files['index.pug'].tags = [];
-      files['tags/_root.pug'] = {
+      files[`tags/${ROOT_TAG}.pug`] = {
         layout: null,
         contents: new Buffer(`
             <meta http-equiv="refresh" content="0; url=/">

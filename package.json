@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "metalsmith": "^2.3.0",
-    "metalsmith-permalinks": "^0.5.0",
     "metalsmith-sass": "^1.4.0",
     "multimatch": "^2.1.0",
     "node-natural-sort": "^0.8.6",
