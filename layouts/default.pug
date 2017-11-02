@@ -7,19 +7,20 @@ html(lang="en")
   body.post
     .header
       block nav-header
-        each parent, idx in attachedTo || []
-          if idx !== 0
-            span &nbsp;
-          a(href="/" + parent.path) #{parent.title}
+        if attachedTo && attachedTo.length !== 0
+          .attachedTo
+            each parent, idx in attachedTo || []
+              a(href=parent.path) #{parent.title}
     .post.w3-mobile
       .title #{title}
       if date !== undefined
         div Posted #{date}.
       block teaser
-      each att in attachments || []
-        div
-          span Attached&nbsp;
-          a(href="/" + att.path) #{att.title}
+      if attachments && attachments.length
+        .attachments
+          each att in attachments
+            a(href=att.path)
+              span #{att.title}
       block template
       block contents
 

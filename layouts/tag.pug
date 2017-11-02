@@ -17,9 +17,13 @@ block template
         span &nbsp;
       a(href= '/tags/' + child) #{child}
   h2 Posts
-  div
+  div.postlist
     each post in tagGet(tag).posts
       div
-        a(href= '/' + post.path) #{post.title}
+        span.title
+          a(href= post.path) #{post.title}
+        span.tags
+          each ptag, pidx in post.tags
+            a(href=tagGet(ptag).path) #{tagGet(ptag).rootPath}
 
         div #{post.teaser}

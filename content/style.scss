@@ -20,6 +20,48 @@ body {
       border: solid 2px #444;
       border-radius: 0.4em;
       padding: 1.5em;
+
+      > .title {
+        font-size: 1.5em;
+      }
+    }
+  }
+
+  //List of attached to
+  div.attachedTo {
+    @extend div.attachments;
+    &:before {
+      content: '../' !important;
+    }
+  }
+
+  //List of attachments
+  div.attachments {
+    background-color: #efd;
+    &:before {
+      content: './';
+      font-size: 1.5em;
+      font-weight: bold;
+      margin-right: 0.5em;
+    }
+    > a {
+      display: inline-block;
+      padding: 0.25em;
+      margin-right: 1em;
+      color: #000;
+    }
+  }
+
+  //List of posts
+  div.postlist {
+    > div {
+      .title { display: inline-block; margin-right: 1.5em; }
+      .tags {
+        display: inline-block; font-size: 0.8em;
+        a {
+          margin-left: 0.5em;
+        }
+      }
     }
   }
 

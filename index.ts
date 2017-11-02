@@ -79,8 +79,8 @@ Metalsmith(path.resolve(__dirname, '..'))
         continue;
       }
 
-      let folder = k.substring(0, k.lastIndexOf('/'));
-      const f = files[`${folder}/index.pug`];
+      let folder = k.substring(0, k.lastIndexOf('/')+1);  //includes "/"
+      const f = files[`${folder}index.pug`];
       if (f === undefined) continue;
       if (f.attachments === undefined) continue;
       f.attachments.push(files[k]);
@@ -96,12 +96,13 @@ Metalsmith(path.resolve(__dirname, '..'))
   .use((files:any, metalsmith:any) => {
     //Sets .path, as all paths are now fixed
     for (let k in files) {
-      if (k.search(/\/index\.pug$/g) !== -1) {
-        files[k].path = k.replace(/\/index\.pug$/g, '/');
+      let kAbs = '/' + k;
+      if (kAbs.search(/\/index\.pug$/g) !== -1) {
+        files[k].path = kAbs.replace(/\/index\.pug$/g, '/');
       }
       else {
         //Permalinks plugin redirection
-        files[k].path = k.replace(/([^\/]+)\.pug$/g, '$1');
+        files[k].path = kAbs.replace(/([^\/]+)\.pug$/g, '$1');
       }
     }
   })
