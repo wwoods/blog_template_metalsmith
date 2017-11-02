@@ -74,17 +74,20 @@ export function tagPlugin(config:TagPluginConfig) {
         }
       }
 
+      //Do we want to populate more properties automatically?
+      if (k.match(/^.*\.pug$/) === null || file.generated) {
+        noAutoIndex.add(k);
+        continue;
+      }
+
+      //Automatic property population
       //Find first matching folder
       for (let folder of config.folders) {
         if (multimatch([k], folder[0]).length === 0) continue;
 
         const fc = folder[1];
-        //Found a match.  Do we even want to add metadata to this file?
+        //Found a match AND we're auto-adding properties.
         //TODO: Allow adding metadata to e.g. PDF automatically via config.
-        if (k.match(/^.*\.pug$/) === null || file.generated) {
-          noAutoIndex.add(k);
-          break;
-        }
 
         if (fc.tags !== undefined) {
           for (const t of fc.tags) file.tags.add(t);
@@ -135,7 +138,7 @@ export function tagPlugin(config:TagPluginConfig) {
       }
 
       //No tags? Implicit root
-      if (file.tags.length === 0) {
+      if (file.tags.size === 0) {
         file.tags.add(ROOT_TAG);
       }
     }
