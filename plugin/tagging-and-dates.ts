@@ -291,8 +291,10 @@ export function tagPlugin(config:TagPluginConfig) {
     metalsmith.metadata(metadata);
 
     //Root's page is index
-    if (files['index.pug'].layout === 'tag.pug') {
-      //If index treated as tag, copy it to root tag page.
+    if (files['index.pug'].generated || files['index.pug'].layout === 'tag.pug') {
+      //If site index is generated or a tag, forward the root tag to the
+      //site index and ensure everything shows up propertly.
+      files['index.pug'].layout = 'tag.pug';
       files['index.pug'].tag = ROOT_TAG;
       files['index.pug'].tags = [];
       files[`tags/${ROOT_TAG}.pug`] = {

@@ -38,6 +38,28 @@ Metalsmith(path.resolve(__dirname, '..'))
     //TODO: cache each folder's build date, and when any file in folder changed, update siblings only.
     //TODO:     Corollary: consider if siblings only will always be sufficient through e.g. tags.
     //TODO: plugin abstraction that plays well with above cache, can be used for e.g. indexing text, PDF files, etc.
+    const metadata = metalsmith.metadata();
+    const ensureDefaultFolderIndex = (folderWithTrailingSlash:string) => {
+      const folderIndex = `${folderWithTrailingSlash}index.pug`;
+      if (files[folderIndex] === undefined) {
+        let folderParts = folderWithTrailingSlash.split('/');
+        let folderName:string;
+        if (folderParts.length <= 1) {
+          folderName = metadata.sitename;
+        }
+        else {
+          folderName = folderParts[folderParts.length - 2];
+        }
+        files[folderIndex] = {
+          generated: true,
+          title: folderName,
+          contents: 'block contents\n  wooooo',
+          attachedTo: [],
+          attachments: [],
+        };
+      }
+    };
+    ensureDefaultFolderIndex('');
     for (let k in files) {
       //Anything can be attached
       files[k].attachedTo = files[k].attachedTo || [];
@@ -50,17 +72,7 @@ Metalsmith(path.resolve(__dirname, '..'))
       //want to represent the file system hierarchy
       const parts = k.split('/');
       for (let i = 0, m = parts.length-1; i < m; i++) {
-        const folderName = parts[i];
-        const folder = `${parts.slice(0, i+1).join('/')}/index.pug`;
-        if (files[folder] === undefined) {
-          files[folder] = {
-            generated: true,
-            title: folderName,
-            contents: 'block contents\n  wooooo',
-            attachedTo: [],
-            attachments: [],
-          };
-        }
+        ensureDefaultFolderIndex(`${parts.slice(0, i+1).join('/')}/`);
       }
     }
     for (let k in files) {
