@@ -53,7 +53,7 @@ Metalsmith(path.resolve(__dirname, '..'))
         files[folderIndex] = {
           generated: true,
           title: folderName,
-          contents: 'block contents\n  wooooo',
+          contents: '',
           attachedTo: [],
           attachments: [],
         };

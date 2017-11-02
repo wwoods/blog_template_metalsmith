@@ -1,29 +1,38 @@
-extends default.pug
+extends _shared.pug
 
-block nav-header
-  each part, idx in tagGet(tag).parents
-    if idx === 0
-      span Parents: &nbsp;
-    else
-      span &nbsp;
-    a(href= tagGet(part).path) #{part}
+block template-nav-header
+  - var tp = tagGet(tag).parents
 
-block template
-  div
-    each child, idx in tagGet(tag).children
-      if idx == 0
-        div Child Tags:&nbsp;
-      else
-        span &nbsp;
-      a(href= '/tags/' + child) #{child}
-  h2 Posts
-  div.postlist
-    each post in tagGet(tag).posts
-      div
-        span.title
-          a(href= post.path) #{post.title}
-        span.tags
-          each ptag, pidx in post.tags
-            a(href=tagGet(ptag).path) #{tagGet(ptag).rootPath}
+  if tp && tp.length !== 0
+    .parentTags
+      each parent in tp
+        a(href=tagGet(parent).path) #{parent}
 
-        div #{post.teaser}
+block template-body
+  .post
+    .title #{tagGet(tag).rootPath}
+
+    //Not standard, but the root tag may have attachments as it is also a folder
+    if attachments && attachments.length
+      .attachments
+        each att in attachments
+          a(href=att.path)
+            span #{att.title}
+
+    - var childTags = tagGet(tag).children
+    if childTags && childTags.length !== 0
+      .childTags
+        each child in childTags
+          a(href=tagGet(child).path) #{child}
+
+    h2 Posts
+    div.postlist
+      each post in tagGet(tag).posts
+        div
+          span.title
+            a(href= post.path) #{post.title}
+          span.tags
+            each ptag, pidx in post.tags
+              a(href=tagGet(ptag).path) #{tagGet(ptag).rootPath}
+
+          div #{post.teaser}

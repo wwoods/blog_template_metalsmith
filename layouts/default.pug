@@ -1,34 +1,29 @@
-doctype html
-html(lang="en")
-  head
-    link(rel="stylesheet", href="/reset.css")
-    link(rel="stylesheet", href="/style.css")
-    title #{sitename}
-  body.post
-    .header
-      block nav-header
-        if attachedTo && attachedTo.length !== 0
-          .attachedTo
-            each parent, idx in attachedTo || []
-              a(href=parent.path) #{parent.title}
-    .post.w3-mobile
-      .title #{title}
-      if date !== undefined
-        div Posted #{date.getUTCFullYear()}-#{date.getUTCMonth()+1}-#{date.getUTCDate()}.
-      block teaser
-      if attachments && attachments.length
-        .attachments
-          each att in attachments
-            a(href=att.path)
-              span #{att.title}
-      block template
-      block contents
+extends _shared.pug
 
-      div
-        each tag, idx in tags
-          if idx === 0
-            span Tags:&nbsp
-          else
-            span &nbsp;
-          a(href="/tags/" + tag) #{tagGet(tag).rootPath}
+block template-nav-header
+  if attachedTo && attachedTo.length !== 0
+    .attachedTo
+      each parent, idx in attachedTo || []
+        a(href=parent.path) #{parent.title}
+
+block template-body
+  .post.w3-mobile
+    .title #{title}
+    if date !== undefined
+      div Posted #{date.getUTCFullYear()}-#{date.getUTCMonth()+1}-#{date.getUTCDate()}.
+    block teaser
+    if attachments && attachments.length
+      .attachments
+        each att in attachments
+          a(href=att.path)
+            span #{att.title}
+    block contents
+
+    div
+      each tag, idx in tags
+        if idx === 0
+          span Tags:&nbsp
+        else
+          span &nbsp;
+        a(href="/tags/" + tag) #{tagGet(tag).rootPath}
 
