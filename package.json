@@ -10,7 +10,8 @@
   "main": "./build/index.js",
   "scripts": {
     "build": "tsc && node build/index.js",
-    "serve": "tsc && node build/index.js && http-server -c-1 build/"
+    "serve": "tsc && node build/index.js && http-server -c-1 build/",
+    "start": "tsc && node build/index.js && http-server -c-1 build/"
   },
   "dependencies": {
     "metalsmith": "^2.3.0",

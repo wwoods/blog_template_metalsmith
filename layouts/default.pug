@@ -6,18 +6,28 @@ html(lang="en")
     title #{sitename}
   body.post
     .header
+      block nav-header
+        each parent, idx in attachedTo || []
+          if idx !== 0
+            span &nbsp;
+          a(href="/" + parent.path) #{parent.title}
     .post.w3-mobile
+      .title #{title}
       if date !== undefined
         div Posted #{date}.
-      each tag in tags
-        if tag !== '_root'
-          div
-            span Tagged &nbsp;
-            a(href="/tags/" + tag) #{tagGet(tag).rootPath}
-            span .
-      each att in attachments || []
-        div Attached #{att}
-      block template
       block teaser
+      each att in attachments || []
+        div
+          span Attached
+          a(href="/" + att.path) #{att.title}
+      block template
       block contents
+
+      div
+        each tag, idx in tags
+          if idx === 0
+            span Tags:&nbsp
+          else
+            span &nbsp;
+          a(href="/tags/" + tag) #{tagGet(tag).rootPath}
 

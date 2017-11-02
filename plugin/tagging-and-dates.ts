@@ -298,6 +298,7 @@ export function tagPlugin(config:TagPluginConfig) {
         files[path] = {
           layout: 'tag.pug',
           contents: '',
+          title: t,
           tag: t,
           tags: [],
           path: path,

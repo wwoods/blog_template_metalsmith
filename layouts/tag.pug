@@ -1,22 +1,24 @@
 extends default.pug
 
-block template
+block nav-header
   - var pathTagsRoot = (path === 'index.html' ? 'tags/' : '../')
 
   each part, idx in tagGet(tag).parents
     if idx === 0
       span Parents: &nbsp;
     else
-      span ,
+      span &nbsp;
     a(href= pathTagsRoot + part + '/index.html') #{part}
-  h1
-    a(href= pathTagsRoot + tag + '/index.html') #{title || tagGet(tag).rootPath}
-  if tagGet(tag).children.length !== 0
-    div
-      h2 Children
-      each child in tagGet(tag).children
-        div
-          a(href= pathTagsRoot + child + '/index.html') #{child}
+
+block template
+  - var pathTagsRoot = (path === 'index.html' ? 'tags/' : '../')
+  div
+    each child, idx in tagGet(tag).children
+      if idx == 0
+        div Child Tags:&nbsp;
+      else
+        span &nbsp;
+      a(href= pathTagsRoot + child + '/index.html') #{child}
   h2 Posts
   div
     each post in tagGet(tag).posts
