@@ -57,6 +57,23 @@ export function tagPlugin(config:TagPluginConfig) {
       file.tags = file.tags.map((v:string) => v.toLowerCase().replace(/^\s+|\s+$/g, ''));
       file.tags = new Set<string>(file.tags);
 
+      //Add default title
+      if (file.title === undefined) {
+        if (k === 'index.pug') {
+          file.title = metadata.sitename;
+        }
+        else {
+          const kParts = k.split('/');
+          const m = kParts[kParts.length - 1].match(/^index\.pug$/);
+          if (m !== null) {
+            file.title = kParts[kParts.length - 2];
+          }
+          else {
+            file.title = kParts[kParts.length - 1].replace(/\.pug$/, '');
+          }
+        }
+      }
+
       //Find first matching folder
       for (let folder of config.folders) {
         if (multimatch([k], folder[0]).length === 0) continue;
@@ -64,25 +81,9 @@ export function tagPlugin(config:TagPluginConfig) {
         const fc = folder[1];
         //Found a match.  Do we even want to add metadata to this file?
         //TODO: Allow adding metadata to e.g. PDF automatically via config.
-        if (k.match(/^.*\.pug$/) === null) {
+        if (k.match(/^.*\.pug$/) === null || file.generated) {
           noAutoIndex.add(k);
           break;
-        }
-
-        //Add default title
-        if (file.title === undefined) {
-          if (k === 'index.pug') {
-            file.title = metadata.sitename;
-          }
-          else {
-            const m = k.match(/\/index\.pug$/);
-            if (m !== null) {
-              file.title = k.substring(0, m.index);
-            }
-            else {
-              file.title = k.replace(/\.pug$/, '');
-            }
-          }
         }
 
         if (fc.tags !== undefined) {

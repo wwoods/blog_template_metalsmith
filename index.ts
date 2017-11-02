@@ -30,24 +30,41 @@ Metalsmith(path.resolve(__dirname, '..'))
   .use(debugMetalsmithPlugin())
   //Replicate the file system hierarchy as "attachments" and "attachedTo"
   .use(function(files:any, metalsmith:any) {
-    //TODO: folders should be attached to parent index.pug.
-    //TODO: folder should generate a blank index.pug, hierarchy similar to tags
-    //TODO: attachments and attachedTo.  Same as parent / children for file system hierarchy.  Support symlinks???
-    //TODO: attach things without an index.pug.  Basically, make it impossible to "lose" a file.
-    //TODO: cache each folder's build date, and when any file in folder changed, update siblings only.
-    //  TODO Corollary: consider if siblings only will always be sufficient through e.g. tags.
-    //TODO: plugin abstraction that plays well with above cache, can be used for e.g. indexing text, PDF files, etc.
+    //TODO: Separate tags and attachments.. somehow
+    //TODO: Post list should have dates and tags.
+    //TODO: teaser implementation
     //TODO: MathJax pre-rendered as https://joashc.github.io/posts/2015-09-14-prerender-mathjax.html
+    //TODO: Support symlinks in file system hierarchy (attached / attachedTo).
+    //TODO: cache each folder's build date, and when any file in folder changed, update siblings only.
+    //TODO:     Corollary: consider if siblings only will always be sufficient through e.g. tags.
+    //TODO: plugin abstraction that plays well with above cache, can be used for e.g. indexing text, PDF files, etc.
     for (let k in files) {
       //Anything can be attached
       files[k].attachedTo = files[k].attachedTo || [];
       //Only index.pug has attachments.
-      if (k.search(/index\.pug$/g) !== -1) {
-        files[k].attachments = [];
+      if (k.search(/(^|\/)index\.pug$/g) !== -1) {
+        files[k].attachments = files[k].attachments || [];
+      }
+
+      //Ensure there is a corresponding index.pug for each file folder, as we
+      //want to represent the file system hierarchy
+      const parts = k.split('/');
+      for (let i = 0, m = parts.length-1; i < m; i++) {
+        const folderName = parts[i];
+        const folder = `${parts.slice(0, i+1).join('/')}/index.pug`;
+        if (files[folder] === undefined) {
+          files[folder] = {
+            generated: true,
+            title: folderName,
+            contents: 'block contents\n  wooooo',
+            attachedTo: [],
+            attachments: [],
+          };
+        }
       }
     }
     for (let k in files) {
-      if (k.search(/index\.pug$/g) !== -1) {
+      if (k.search(/(^|\/)index\.pug$/g) !== -1) {
         //Add to parent folder, that's it.
         let folder = k.substring(0, k.lastIndexOf('/'));
         folder = folder.substring(0, folder.lastIndexOf('/'));
