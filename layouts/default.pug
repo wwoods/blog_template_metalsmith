@@ -19,11 +19,8 @@ block template-body
             span #{att.title}
     block contents
 
-    div
-      each tag, idx in tags
-        if idx === 0
-          span Tags:&nbsp
-        else
-          span &nbsp;
-        a(href="/tags/" + tag) #{tagGet(tag).rootPath}
+    if tags.length !== 0
+      div.tagList
+        each tag, idx in tags
+          a(href=tagGet(tag).path) #{tagGet(tag).rootPath}
 

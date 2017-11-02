@@ -26,13 +26,14 @@ block template-body
           a(href=tagGet(child).path) #{child}
 
     h2 Posts
-    div.postlist
+    div.postList
       each post in tagGet(tag).posts
         div
           span.title
             a(href= post.path) #{post.title}
-          span.tags
-            each ptag, pidx in post.tags
-              a(href=tagGet(ptag).path) #{tagGet(ptag).rootPath}
+          if post.tags.length !== 0
+            span.tagList
+              each ptag, pidx in post.tags
+                a(href=tagGet(ptag).path) #{tagGet(ptag).rootPath}
 
           div #{post.teaser}

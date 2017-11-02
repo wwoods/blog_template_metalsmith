@@ -82,16 +82,16 @@ body {
   }
 
   //List of posts
-  div.postlist {
+  div.postList {
     > div {
       .title { display: inline-block; margin-right: 1.5em; }
-      .tags {
-        display: inline-block; font-size: 0.8em;
-        a {
-          margin-left: 0.5em;
-        }
-      }
     }
+  }
+  //List of tags either at end of a post or off to the side of it.
+  .tagList {
+    @extend div.childTags;
+    font-size: 0.8em !important;
+    &:before { font-size: 1.2em !important; }
   }
 
   /** Generic bullets */
