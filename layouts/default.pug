@@ -14,7 +14,7 @@ html(lang="en")
     .post.w3-mobile
       .title #{title}
       if date !== undefined
-        div Posted #{date}.
+        div Posted #{date.getUTCFullYear()}-#{date.getUTCMonth()+1}-#{date.getUTCDate()}.
       block teaser
       if attachments && attachments.length
         .attachments

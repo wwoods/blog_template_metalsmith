@@ -4,6 +4,10 @@ body {
   font-size: 12pt;
   line-height: 1.2;
 
+  p + p {
+    margin-top: 1em;
+  }
+
   .header {
     display: block;
 
