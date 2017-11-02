@@ -45,6 +45,7 @@ Metalsmith(path.resolve(__dirname, '..'))
     //TODO: cache each folder's build date, and when any file in folder changed, update siblings only.
     //  TODO Corollary: consider if siblings only will always be sufficient through e.g. tags.
     //TODO: plugin abstraction that plays well with above cache, can be used for e.g. indexing text, PDF files, etc.
+    //TODO: MathJax pre-rendered as https://joashc.github.io/posts/2015-09-14-prerender-mathjax.html
     for (let k in files) {
       //Only index.pug has attachments.
       if (k.search(/index\.pug$/g) !== -1) {
