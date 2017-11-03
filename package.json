@@ -10,8 +10,7 @@
   "main": "./build/index.js",
   "scripts": {
     "build": "tsc && node build/index.js",
-    "serve": "tsc && node build/index.js && http-server -c-1 build/",
-    "start": "tsc && node build/index.js && http-server -c-1 build/"
+    "start": "tsc && node build/index.js & http-server -c-1 build/ & wait"
   },
   "dependencies": {
     "metalsmith": "^2.3.0",
@@ -25,6 +24,7 @@
     "@types/multimatch": "^2.1.2",
     "@types/node": "^8.0.47",
     "@types/pug": "^2.0.4",
-    "http-server": "^0.10.0"
+    "http-server": "^0.10.0",
+    "metalsmith-watch": "^1.0.3"
   }
 }

@@ -6,6 +6,7 @@ import * as indexConfig from './indexConfig';
 
 const Metalsmith = require('metalsmith');  //No types, use old syntax
 const metalsmithSass = require('metalsmith-sass');
+const metalsmithWatch = require('metalsmith-watch');
 
 let naturalSort = require('node-natural-sort');
 naturalSort = naturalSort();
@@ -125,6 +126,10 @@ Metalsmith(path.resolve(__dirname, '..'))
     pattern: ['**/*.pug']
   }))
   .use(metalsmithSass({
+  }))
+  .use(metalsmithWatch({
+    paths: { "content/**/*": "**", "layouts/**/*": "**" },
+    livereload: true,
   }))
   .build((err:any) => {
     if (err) throw err;
