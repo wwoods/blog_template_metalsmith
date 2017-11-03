@@ -10,7 +10,7 @@ block template-nav-header
 
 block template-body
   .post
-    .title #{tagGet(tag).rootPath}
+    .title #{path === '/' ? title : title ? title + ' (' + tagGet(tag).rootPath + ')' : tagGet(tag).rootPath}
 
     //Not standard, but the root tag may have attachments as it is also a folder
     if attachments && attachments.length

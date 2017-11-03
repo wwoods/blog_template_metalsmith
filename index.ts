@@ -30,11 +30,14 @@ Metalsmith(path.resolve(__dirname, '..'))
   .use(debugMetalsmithPlugin())
   //Replicate the file system hierarchy as "attachments" and "attachedTo"
   .use(function(files:any, metalsmith:any) {
-    //TODO: Separate tags and attachments.. somehow
     //TODO: Post list should have dates and tags.
     //TODO: teaser implementation
     //TODO: MathJax pre-rendered as https://joashc.github.io/posts/2015-09-14-prerender-mathjax.html
     //TODO: Support symlinks in file system hierarchy (attached / attachedTo).
+    //TODO: Multi-depth, like scaled concepts.  Need a way of making infinite outlines, or a trick that approximates them on FS.
+    //TODO: git submodule integration!!! This would allow us to use a single metalsmith repository to describe
+    //    a whole host of other projects in context of one another.
+    //TODO: TeX integration?
     //TODO: cache each folder's build date, and when any file in folder changed, update siblings only.
     //TODO:     Corollary: consider if siblings only will always be sufficient through e.g. tags.
     //TODO: plugin abstraction that plays well with above cache, can be used for e.g. indexing text, PDF files, etc.

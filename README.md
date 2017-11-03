@@ -19,3 +19,17 @@ Installation / Getting Started
 
 4. Point your browser at http://127.0.0.1:8080
 
+New Page from Empty Repo
+------------------------
+
+The update.sh script will update any version of this website that has not significantly diverged.  Additionally, it may be used to create a new, empty website following this website's template.  Follow these steps:
+
+    $ git clone https://github.com/wwoods/blog_template_metalsmith
+    $ git init new_repo
+    $ cd new_repo
+    $ TEMPLATE=../blog_template_metalsmith ../blog_template_metalsmith/update.sh
+    $ npm install
+    $ npm start
+
+That command will copy all needed files.  It only checks for the existence of "index.ts", and is not suitable for existing repositories.  Blank ones only!
+
