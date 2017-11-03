@@ -19,17 +19,25 @@ Installation / Getting Started
 
 4. Point your browser at http://127.0.0.1:8080
 
-New Page from Empty Repo
-------------------------
+New Site for Empty Repository
+-----------------------------
 
-The update.sh script will update any version of this website that has not significantly diverged.  Additionally, it may be used to create a new, empty website following this website's template.  Follow these steps:
+The `update-cwd.sh` script is used by changing to a new directory or existing directory that is a version of this blog template and has not significantly diverged.
+
+To create a new, empty website following this template, follow these steps:
 
     $ git clone https://github.com/wwoods/blog_template_metalsmith
     $ git init new_repo
     $ cd new_repo
-    $ TEMPLATE=../blog_template_metalsmith ../blog_template_metalsmith/update.sh
-    $ npm install
+    $ ../blog_template_metalsmith/update-cwd.sh
     $ npm start
 
-That command will copy all needed files.  It only checks for the existence of "index.ts", and is not suitable for existing repositories.  Blank ones only!
+The command `update-cwd.sh` will copy all needed files.
+
+Updating a Site From This Repository
+------------------------------------
+
+Assuming a repository that began as a fork (or via `update-cwd.sh`) of this template, that fork may be updated by cloning this repository and running its `update-cwd.sh` with the repository to be updated as the current working directory.
+
+When differentiating between an update and creating a new site, this script only checks for the existence of "index.ts".
 
