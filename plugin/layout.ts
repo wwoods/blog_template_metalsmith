@@ -34,9 +34,6 @@ async function _doLayout(fname:string, v:{contents:Buffer}, metadata:any) {
   let params = Object.assign({layout: 'default.pug'}, metadata, v);
 
   let contentsStr = v.contents.toString();
-  //if (contentsStr.search(/^block /m) === -1) {
-  //  contentsStr = `block contents\n${contentsStr.replace(/^/gm, '  ')}`;
-  //}
   if (contentsStr.search(/^extends /m) === -1) {
     contentsStr = `extends ${path.resolve('/layouts', params.layout)}\n\n${contentsStr}`;
   }

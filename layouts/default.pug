@@ -17,7 +17,7 @@ block template-body
         each att in attachments
           a(href=att.path)
             span #{att.title}
-    block contents
+    block content
 
     if tags.length !== 0
       div.tagList
