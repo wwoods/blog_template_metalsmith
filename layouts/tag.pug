@@ -1,15 +1,14 @@
 extends _shared.pug
 
-block template-nav-header
-  - var tp = tagGet(tag).parents
-
-  if tp && tp.length !== 0
-    .parentTags
-      each parent in tp
-        a(href=tagGet(parent).path) #{parent}
-
 block template-body
   .post
+    - var tp = tagGet(tag).parents
+
+    if tp && tp.length !== 0
+      .parentTags
+        each parent in tp
+          a(href=tagGet(parent).path) #{parent}
+
     .title #{path === '/' ? title : title ? title + ' (' + tagGet(tag).rootPath + ')' : tagGet(tag).rootPath}
 
     //Not standard, but the root tag may have attachments as it is also a folder

@@ -73,6 +73,7 @@ function _build(finalStep:{(metalsmith:any):any}) {
       //TODO: MathJax pre-rendered as https://joashc.github.io/posts/2015-09-14-prerender-mathjax.html
       //TODO: Support symlinks in file system hierarchy (attached / attachedTo).
       //TODO: Multi-depth, like scaled concepts.  Need a way of making infinite outlines, or a trick that approximates them on FS.
+      //TODO: Local tags: long pages may only have a couple paragraphs or a region of interest to mark with a tag.  Should apply tag to document, but use e.g. footnote^{1,2} markers to quick-link the reference points.
       //TODO: git submodule integration!!! This would allow us to use a single metalsmith repository to describe
       //    a whole host of other projects in context of one another.
       //TODO: TeX integration?

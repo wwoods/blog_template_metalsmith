@@ -1,13 +1,12 @@
 extends _shared.pug
 
-block template-nav-header
-  if attachedTo && attachedTo.length !== 0
-    .attachedTo
-      each parent, idx in attachedTo || []
-        a(href=parent.path) #{parent.title}
-
 block template-body
   .post.w3-mobile
+    if attachedTo && attachedTo.length !== 0
+      .attachedTo
+        each parent, idx in attachedTo || []
+          a(href=parent.path) #{parent.title}
+
     .title #{title}
     if date !== undefined
       div Posted #{date.getUTCFullYear()}-#{date.getUTCMonth()+1}-#{date.getUTCDate()}.

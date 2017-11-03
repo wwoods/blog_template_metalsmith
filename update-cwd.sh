@@ -15,6 +15,7 @@ if [ "${EXISTS}" -eq "1" ]; then
     echo "Updating core site files from TEMPLATE=${TEMPLATE}"
     cp --preserve=timestamps -r ${TEMPLATE}/.gitignore ${TEMPLATE}/index.ts ${TEMPLATE}/layouts ${TEMPLATE}/package.json ${TEMPLATE}/plugin ${TEMPLATE}/tsconfig.json ./
     cp --preserve=timestamps ${TEMPLATE}/content/styleDefault.scss ./content/styleDefault.scss
+    npm install
 else
     echo "Making NEW SITE from TEMPLATE=${TEMPLATE}"
     cp --preserve=timestamps -r ${TEMPLATE}/*.ts ${TEMPLATE}/package.json ${TEMPLATE}/layouts ${TEMPLATE}/plugin ${TEMPLATE}/tsconfig.json ${TEMPLATE}/.gitignore ./
