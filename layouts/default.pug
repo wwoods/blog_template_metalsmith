@@ -7,9 +7,16 @@ block template-body
         each parent, idx in attachedTo || []
           a(href=parent.path) #{parent.title}
 
-    .title #{title}
-    if date !== undefined
-      div Posted #{date.getUTCFullYear()}-#{date.getUTCMonth()+1}-#{date.getUTCDate()}.
+    .title
+      span #{title}
+      - var dates = []
+      if mdate !== undefined
+        - dates.push("Updated " + mdate.getUTCFullYear() + "-" + (mdate.getUTCMonth()+1) + "-" + mdate.getUTCDate())
+      if date !== undefined
+        - dates.push("Posted " + date.getUTCFullYear() + "-" + (date.getUTCMonth()+1) + "-" + date.getUTCDate())
+      - if (dates.length === 2) dates[1] = dates[1].toLowerCase()
+      if dates.length
+        .date= dates.join(', ')
     block teaser
     if attachments && attachments.length
       .attachments
