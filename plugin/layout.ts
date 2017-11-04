@@ -38,8 +38,11 @@ async function _doLayout(fname:string, v:{contents:Buffer}, metadata:any) {
     contentsStr = `extends ${path.resolve('/layouts', params.layout)}\n\n${contentsStr}`;
   }
   const renderer = pug.compile(contentsStr, {
-      basedir: path.resolve(__dirname, '../..'),
-      filename: fname,
+    basedir: path.resolve(__dirname, '../..'),
+    filename: fname,
+    filters: {
+      escape: (contents:string) => contents.replace(/</g, '&lt;').replace(/>/g, '&gt;'),
+    }
   });
   try {
     v.contents = new Buffer(renderer(params));

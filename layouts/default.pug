@@ -23,7 +23,9 @@ block template-body
         each att in attachments
           a(href=att.path)
             span #{att.title}
-    block content
+    block contents
+      p
+        :escape <No contents specified>
 
     if tags.length !== 0
       div.tagList

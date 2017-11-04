@@ -58,7 +58,7 @@ program.parse(process.argv);
 function _build(finalStep:{(metalsmith:any):any}) {
   let ms = Metalsmith(path.resolve(__dirname, '..'))
     .metadata(indexConfig.siteMetadata)
-    .source('./content')
+    .source('./contents')
     .destination('./build')
     //Delete everything in ./build?
     .clean(true)
@@ -145,7 +145,7 @@ function _build(finalStep:{(metalsmith:any):any}) {
         att !== undefined && att.sort((a:any, b:any) => naturalSort(a.title, b.title));
       }
     })
-    //Assign date and tag metadata, build tag sites (configured via content/tags.json)
+    //Assign date and tag metadata, build tag sites (configured via indexConfig.ts)
     .use(tagPlugin(indexConfig.tagConfig))
     .use((files:any, metalsmith:any) => {
       //Sets .path, as all paths are now fixed
