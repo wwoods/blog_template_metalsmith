@@ -1,4 +1,5 @@
 import * as child_process from 'child_process';
+import * as fs from 'fs';
 import * as program from 'commander';
 import * as path from 'path';
 import * as process from 'process';
@@ -10,6 +11,68 @@ import * as indexConfig from './indexConfig';
 const Metalsmith = require('metalsmith');  //No types, use old syntax
 const metalsmithSass = require('metalsmith-sass');
 const metalsmithWatch = require('metalsmith-watch');
+
+function wrap<T>(fn:any):{(...args:any[]):Promise<T>} {
+  return async (...args:any[]) => {
+    return await new Promise<T>((resolve, reject) => {
+      fn(...args, (err:any, result:T) => {
+        if (err) reject(err);
+        else resolve(result);
+      });
+    });
+  };
+}
+
+/** PATCH METALSMITH!  We want to read symlinks as a link, not as actual content.
+ *
+ * Note that metalsmith only points files here, not folders, so we must check
+ * each path part.
+ * */
+const _old_read:any = Metalsmith.prototype.readFile;
+const linksSeen = new Map<string, string>(); // link -> linked path.
+Metalsmith.prototype.readFile = async function(file:string) {
+  const src = this.source();
+  const ret:any = {};  //object seen by metalsmith
+
+  //Absolute path, easy version
+  if (file[0] !== '/') file = path.resolve(src, file);
+
+  //Check links only in source directory.
+  const relFileParts = path.relative(src, file).split(path.sep);
+
+  for (let i = 0, m = relFileParts.length; i < m; i++) {
+    if (relFileParts[i] === '..') break;  //Parents of source never linked.
+
+    const partPath = relFileParts.slice(0, i+1).join(path.sep);
+
+    //Cache
+    if (linksSeen.has(partPath)) {
+      return {__isLink:linksSeen.get(partPath)};
+    }
+
+    const partFsPath = path.resolve(src, partPath);
+
+    const partStats = await wrap<fs.Stats>(fs.lstat)(partFsPath);
+    if (partStats.isSymbolicLink()) {
+      //New link!
+      const linkDest = await wrap<string>(fs.readlink)(partFsPath);
+      const linkDestAbs = path.resolve(path.resolve(partFsPath, '..'), linkDest);
+      const linkDestRel = path.relative(src, linkDestAbs);
+
+      if (linkDestRel.indexOf('..' + path.sep) !== 0) {
+        //Local symlink.
+        //
+        //Since we have multiple threads doing this at once, flag may already
+        //be set, but that's OK as linkDestRel should also be same.
+        linksSeen.set(partPath, linkDestRel);
+        return {__isLink:linkDestRel};
+      }
+    }
+  }
+
+  //Not a symlink'd file or version of a file, use normal method
+  return await wrap<any>(_old_read.bind(this))(file);
+};
 
 let naturalSort = require('node-natural-sort');
 naturalSort = naturalSort();
@@ -62,6 +125,14 @@ function _build(finalStep:{(metalsmith:any):any}) {
     .destination('./build')
     //Delete everything in ./build?
     .clean(true)
+    .use(function(files:any) {
+      for (let k in files) {
+        if (files[k].__isLink) {
+          //A symlink; we represent these through the "linksSeen" variable.
+          delete files[k];
+        }
+      }
+    })
     //This debug is here just to show how "files" looks in Metalsmith.  All
     //Metalsmith plugins do is manipulate the files array, which maps paths to
     //some metadata (including "contents", the file's contents).
@@ -116,6 +187,22 @@ function _build(finalStep:{(metalsmith:any):any}) {
         for (let i = 0, m = parts.length-1; i < m; i++) {
           ensureDefaultFolderIndex(`${parts.slice(0, i+1).join('/')}/`);
         }
+      }
+      for (let [k, v] of linksSeen.entries()) {
+        //k, v means k is a link to v.  In other words, the parent of k should
+        //attach v.
+        const kParent = k.substring(0, k.lastIndexOf(path.sep)) + `${path.sep}index.pug`;
+        if (fs.statSync(path.resolve(metalsmith.source(), v)).isDirectory()) {
+          //Target is directory, use our index file for that directory.
+          v = v + `${path.sep}index.pug`;
+        }
+        const fK = files[kParent];
+        const fV = files[v];
+        if (fK === undefined) throw new Error(`Could not find link part ${kParent}`);
+        if (fV === undefined) throw new Error(`Could not find link part ${v}`);
+
+        fV.attachedTo.push(fK);
+        fK.attachments.push(fV);
       }
       for (let k in files) {
         if (k.search(/(^|\/)index\.pug$/g) !== -1) {
