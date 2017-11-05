@@ -3,13 +3,14 @@
     "target": "es6",
     "outDir": "build",
     "rootDir": ".",
+    "allowUnreachableCode": true,
     "module": "commonjs",
     "moduleResolution": "node",
     "sourceMap": true,
-    "strictNullChecks": true,
     "noImplicitAny": true,
     "noImplicitReturns": true,
-    "noImplicitThis": true
+    "noImplicitThis": true,
+    "strictNullChecks": true
   },
   "include": [
     "index.ts",

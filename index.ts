@@ -107,6 +107,10 @@ program
     server.on('error', (err) => {
       console.error('Failed to start http-server');
     });
+    process.on('exit', () => {
+      //Auto-shutdown server when we exit on e.g. an error.
+      server.kill();
+    });
     _build((metalsmith) => metalsmith.use(metalsmithWatch({
       paths: { "${source}/**": "**", "layouts/**": "**" },
       livereload: true,
