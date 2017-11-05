@@ -1,5 +1,16 @@
 extends _shared.pug
 
+mixin postLine(post)
+  div
+    span.title
+      a(href= post.path) #{post.title}
+    if post.tags.length !== 0
+      span.tagList
+        each ptag, pidx in post.tags
+          a(href=tagGet(ptag).path) #{tagGet(ptag).rootPath}
+
+    div #{post.teaser}
+
 block template-body
   .post
     - var tp = tagGet(tag).parents
@@ -26,13 +37,14 @@ block template-body
 
     h2 Posts
     div.postList
-      each post in tagGet(tag).posts
-        div
-          span.title
-            a(href= post.path) #{post.title}
-          if post.tags.length !== 0
-            span.tagList
-              each ptag, pidx in post.tags
-                a(href=tagGet(ptag).path) #{tagGet(ptag).rootPath}
+      if tagGet(tag).posts.length !== undefined
+        //Flat array
+        each post in tagGet(tag).posts
+          +postLine(post)
+      else
+        //With headers
+        each posts, heading in tagGet(tag).posts
+          div.group #{heading}
+          each post in posts
+            +postLine(post)
 
-          div #{post.teaser}

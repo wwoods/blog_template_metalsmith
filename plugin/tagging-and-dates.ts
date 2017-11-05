@@ -289,6 +289,24 @@ export function tagPlugin(config:TagPluginConfig) {
       tag.posts.sort((a, b) => {
         return naturalSort(p(a), p(b));
       });
+
+      //Is first a date?  Make it a heading
+      if (sort[0] in config.dateFields) {
+        const newPosts:any = {};
+        let lastHeader:any;
+        let lastGroup:any;
+        //Already sorted, just extract headers and make new group when changed.
+        for (const p of tag.posts) {
+          const f = p[sort[0]];
+          const header = f && `${f.getUTCFullYear()}-${f.getUTCMonth()+1}-${f.getUTCDate()}` || 'None';
+          if (lastHeader === undefined || lastHeader !== header) {
+            lastHeader = header;
+            newPosts[header] = lastGroup = [];
+          }
+          lastGroup.push(p);
+        }
+        tag.posts = newPosts;
+      }
     }
 
     metalsmith.metadata(metadata);

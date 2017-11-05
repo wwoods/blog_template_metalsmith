@@ -143,17 +143,16 @@ function _build(finalStep:{(metalsmith:any):any}) {
     .use(debugMetalsmithPlugin())
     //Replicate the file system hierarchy as "attachments" and "attachedTo"
     .use(function(files:any, metalsmith:any) {
-      //TODO: Post list should have dates and tags.
-      //TODO: teaser implementation
-      //TODO: MathJax pre-rendered as https://joashc.github.io/posts/2015-09-14-prerender-mathjax.html
-      //TODO: Support symlinks in file system hierarchy (attached / attachedTo).
-      //TODO: Multi-depth, like scaled concepts.  Need a way of making infinite outlines, or a trick that approximates them on FS.
+      //TODO: teaser implementation.  Should pre-render ALL blocks in contents to e.g. "blocks.contents" as HTML.  Useful for e.g. text scanning and for using HTML attributes to apply local tags (see later).  Replaces "contents" with blocks that unescaped HTML (!= blocks.contents, etc) in template.
       //TODO: Local tags: long pages may only have a couple paragraphs or a region of interest to mark with a tag.  Should apply tag to document, but use e.g. footnote^{1,2} markers to quick-link the reference points.
+      //TODO: MathJax pre-rendered as https://joashc.github.io/posts/2015-09-14-prerender-mathjax.html
+      //TODO: Multi-depth, like scaled concepts.  Need a way of making infinite outlines, or a trick that approximates them on FS.
       //TODO: git submodule integration!!! This would allow us to use a single metalsmith repository to describe
       //    a whole host of other projects in context of one another.
       //TODO: TeX integration?
       //TODO: cache each folder's build date, and when any file in folder changed, update siblings only.
       //TODO:     Corollary: consider if siblings only will always be sufficient through e.g. tags.
+      //TODO:     Corollary: may want database integration for this.
       //TODO: plugin abstraction that plays well with above cache, can be used for e.g. indexing text, PDF files, etc.
       const metadata = metalsmith.metadata();
       const ensureDefaultFolderIndex = (folderWithTrailingSlash:string) => {
