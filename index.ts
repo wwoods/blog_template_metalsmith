@@ -23,6 +23,30 @@ function wrap<T>(fn:any):{(...args:any[]):Promise<T>} {
   };
 }
 
+function asyncMaybeCallback<T>(fn:{(...args:any[]):Promise<T>}):{(...args:any[]):Promise<T>} {
+  //Only works with single-result-object callbacks.
+  //Partly from https://github.com/matthewmueller/unyield/blob/master/index.js
+  return async function(this:any) {
+    let args = [].slice.call(arguments);
+    let last = args[args.length - 1];
+    let cb = 'function' === typeof last && last;
+
+    if (cb) {
+      args.pop();
+      try {
+        let r = await fn.apply(this, args);
+        return cb(undefined, r);
+      }
+      catch (e) {
+        return cb(e);
+      }
+    }
+    else {
+      return await fn.apply(this, arguments);
+    }
+  }
+}
+
 /** PATCH METALSMITH!  We want to read symlinks as a link, not as actual content.
  *
  * Note that metalsmith only points files here, not folders, so we must check
@@ -30,7 +54,8 @@ function wrap<T>(fn:any):{(...args:any[]):Promise<T>} {
  * */
 const _old_read:any = Metalsmith.prototype.readFile;
 const linksSeen = new Map<string, string>(); // link -> linked path.
-Metalsmith.prototype.readFile = async function(file:string) {
+//Must use asyncMaybeCallback to work with metalsmith-watch
+Metalsmith.prototype.readFile = asyncMaybeCallback(async function(this:any, file:string, ...args:any[]) {
   const src = this.source();
   const ret:any = {};  //object seen by metalsmith
 
@@ -72,7 +97,7 @@ Metalsmith.prototype.readFile = async function(file:string) {
 
   //Not a symlink'd file or version of a file, use normal method
   return await wrap<any>(_old_read.bind(this))(file);
-};
+});
 
 let naturalSort = require('node-natural-sort');
 naturalSort = naturalSort();
@@ -100,8 +125,10 @@ program
 program
   .command('serve')
   .description('Build the Metalsmith website')
+  .option('--incremental', 'Incremental rebuilds')
   .action(() => {
-    const server = child_process.spawn('http-server', ['-c-1', 'build/']);
+    const server = child_process.spawn('http-server', ['-c-1',
+        '-a', '127.0.0.1', 'build/']);
     server.stdout.on('data', (data) => console.log(data.toString()));
     server.stderr.on('data', (data) => console.error(data.toString()));
     server.on('error', (err) => {
@@ -111,8 +138,15 @@ program
       //Auto-shutdown server when we exit on e.g. an error.
       server.kill();
     });
+    const paths:any = {
+      "${source}/**": "**",
+      "layouts/**": "**",
+    };
+    if (program.incremental) {
+      paths["${source}/**"] = true;
+    }
     _build((metalsmith) => metalsmith.use(metalsmithWatch({
-      paths: { "${source}/**": "**", "layouts/**": "**" },
+      paths: paths,
       livereload: true,
     })));
   })
@@ -123,6 +157,7 @@ program.parse(process.argv);
 
 /** Perform the build. */
 function _build(finalStep:{(metalsmith:any):any}) {
+  let firstBuild = true;
   let ms = Metalsmith(path.resolve(__dirname, '..'))
     .metadata(indexConfig.siteMetadata)
     .source('./contents')
@@ -143,12 +178,16 @@ function _build(finalStep:{(metalsmith:any):any}) {
     .use(debugMetalsmithPlugin())
     //Replicate the file system hierarchy as "attachments" and "attachedTo"
     .use(function(files:any, metalsmith:any) {
+      //TODO: file date via name (YYYY-MM-DD-<name>).  Git LFS support / instructions.
       //TODO: teaser implementation.  Should pre-render ALL blocks in contents to e.g. "blocks.contents" as HTML.  Useful for e.g. text scanning and for using HTML attributes to apply local tags (see later).  Replaces "contents" with blocks that unescaped HTML (!= blocks.contents, etc) in template.
       //TODO: Local tags: long pages may only have a couple paragraphs or a region of interest to mark with a tag.  Should apply tag to document, but use e.g. footnote^{1,2} markers to quick-link the reference points.
       //TODO: MathJax pre-rendered as https://joashc.github.io/posts/2015-09-14-prerender-mathjax.html
       //TODO: Multi-depth, like scaled concepts.  Need a way of making infinite outlines, or a trick that approximates them on FS.
       //TODO: git submodule integration!!! This would allow us to use a single metalsmith repository to describe
-      //    a whole host of other projects in context of one another.
+      //    a whole host of other projects in context of one another.  Also allows access controls, etc.
+      //    Proposed usage: folder w/ repository should have an index.pug that specifies how repo should be treated.
+      //      Default is same as this website - load indexConfig, optionally prefix EVERY tag with something, then merge
+      //      data from that website into this one.
       //TODO: TeX integration?
       //TODO: cache each folder's build date, and when any file in folder changed, update siblings only.
       //TODO:     Corollary: consider if siblings only will always be sufficient through e.g. tags.
@@ -201,12 +240,16 @@ function _build(finalStep:{(metalsmith:any):any}) {
         }
         const fK = files[kParent];
         const fV = files[v];
-        if (fK === undefined) throw new Error(`Could not find link part ${kParent}`);
-        if (fV === undefined) throw new Error(`Could not find link part ${v}`);
+        if (fK === undefined || fV === undefined) {
+          if (!firstBuild) continue;
+          if (fK === undefined) throw new Error(`Could not find link part ${kParent}`);
+          if (fV === undefined) throw new Error(`Could not find link part ${v}`);
+        }
 
         fV.attachedTo.push(fK);
         fK.attachments.push(fV);
       }
+      firstBuild = false;
       for (let k in files) {
         if (k.search(/(^|\/)index\.pug$/g) !== -1) {
           //Add to parent folder, that's it.

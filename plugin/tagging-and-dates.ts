@@ -93,9 +93,15 @@ export function tagPlugin(config:TagPluginConfig) {
           for (const t of fc.tags) file.tags.add(t);
         }
         if (fc.dateField !== undefined) {
-          const m = k.match(/^.*(^|\/)(\d\d\d\d-\d\d)\/(\d\d)-.*$/);
+          const m = k.match(/(^|\/)(\d\d\d\d-\d\d)\/(\d\d)-.*$/);
           if (m !== null) {
             file[fc.dateField] = new Date(`${m[2]}-${m[3]}`);
+          }
+          else {
+            const m2 = k.match(/(^|\/)(\d\d\d\d-\d\d-\d\d)-.*$/);
+            if (m2 !== null) {
+              file[fc.dateField] = new Date(m2[2]);
+            }
           }
         }
 

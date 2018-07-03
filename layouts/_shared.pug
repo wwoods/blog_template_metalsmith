@@ -3,11 +3,14 @@ html(lang="en")
   head
     script(src="http://localhost:35729/livereload.js")
     link(rel="stylesheet", href="/reset.css")
-    link(rel="stylesheet", href="/styleDefault.css")
+    block template-base-style
+      link(rel="stylesheet", href="/styleDefault.css")
     block template-title
       title #{sitename}
-  body
-    block template-background
-      .background
-    block template-body
+    block template-head
+  block template-body-all
+    body
+      block template-background
+        .background
+      block template-body
 

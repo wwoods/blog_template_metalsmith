@@ -23,14 +23,15 @@ export function layoutPlugin(opts:{pattern:Array<string>}) {
         continue;
       }
 
-      promises.push(_doLayout(k, data, metadata));
+      promises.push(_doLayout(k, data, metadata, metalsmith.source()));
     }
     await Promise.all(promises);
   };
 }
 
 
-async function _doLayout(fname:string, v:{contents:Buffer}, metadata:any) {
+async function _doLayout(fname:string, v:{contents:Buffer}, metadata:any,
+    sourceDir:string) {
   let params = Object.assign({layout: 'default.pug'}, metadata, v);
 
   let contentsStr = v.contents.toString();
@@ -38,8 +39,8 @@ async function _doLayout(fname:string, v:{contents:Buffer}, metadata:any) {
     contentsStr = `extends ${path.resolve('/layouts', params.layout)}\n\n${contentsStr}`;
   }
   const renderer = pug.compile(contentsStr, {
-    basedir: path.resolve(__dirname, '../..'),
-    filename: fname,
+    basedir: path.dirname(sourceDir),
+    filename: path.relative(path.dirname(sourceDir), path.resolve(sourceDir, fname)),
     filters: {
       escape: (contents:string) => contents.replace(/</g, '&lt;').replace(/>/g, '&gt;'),
     }
