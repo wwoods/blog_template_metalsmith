@@ -1,8 +1,42 @@
+
+// Save ink, omit weird details.
+@media print {
+  body {
+    background-color: white !important;
+    .background { display: none; }
+
+    > div.post {
+      border: none;
+    }
+  }
+
+  div.attachedTo { display: none; }
+  div.attachments { display: none; }
+  div.title div.date { display: none; }
+  div.tagList { display: none; }
+}
+
+// Normal screen display
 body {
   background-color: #b8bcbc;
   font-family: sans-serif;
   font-size: 12pt;
   line-height: 1.2;
+
+  em {
+    font-weight: bold;
+  }
+
+  .code {
+    display: inline-block !important;
+    vertical-align: bottom;
+    padding: 0.1em 0.5em;
+  }
+  code, .code {
+    border: solid 1px #ccc;
+    font-family: monospace;
+    font-size: 0.8em;
+  }
 
   p + p {
     margin-top: 1em;

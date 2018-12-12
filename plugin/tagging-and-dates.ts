@@ -162,14 +162,17 @@ export function tagPlugin(config:TagPluginConfig) {
     //Convert each file's tags to a sorted array; ensure all tags have at least
     //one parent.
     for (const k in files) {
-      const t = files[k].tags = Array.from(files[k].tags);
+      const t: Array<string> = files[k].tags = Array.from(files[k].tags) as Array<string>;
       t.sort(naturalSort);
 
-      for (const t of files[k].tags) {
-        if (tagParents.get(t) !== undefined) continue;
+      for (const tt of t) {
+        const ttParts = tt.split(/\s*\/\s*/g).map((v) => v.toLowerCase().replace(/^\s+|\s+$/g, ''));
+        for (const ttP of ttParts) {
+          if (tagParents.get(ttP) !== undefined) continue;
 
-        //No parents for this tag.  Assume root parent.
-        tagParentsAdd(ROOT_TAG, t);
+          //No parents for this tag.  Assume root parent.
+          tagParentsAdd(ROOT_TAG, ttP);
+        }
       }
     }
 

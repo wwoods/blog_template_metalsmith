@@ -3,12 +3,14 @@ import * as fs from 'fs';
 import * as program from 'commander';
 import * as path from 'path';
 import * as process from 'process';
+const highlightjs = require('highlight.js');
 import {layoutPlugin} from './plugin/layout';
 import {tagPlugin} from './plugin/tagging-and-dates';
 
 import * as indexConfig from './indexConfig';
 
 const Metalsmith = require('metalsmith');  //No types, use old syntax
+const metalsmithDomTransform = require('metalsmith-dom-transform');
 const metalsmithSass = require('metalsmith-sass');
 const metalsmithWatch = require('metalsmith-watch');
 
@@ -295,6 +297,24 @@ function _build(finalStep:{(metalsmith:any):any}) {
     })
     .use(layoutPlugin({
       pattern: ['**/*.pug']
+    }))
+    //DOM transformations
+    .use(metalsmithDomTransform({
+      transforms: [
+        (dom:any, file:any, {files, metalsmith}:{files:any, metalsmith:any}, done:any) => {
+          //Code highlighting
+          for (const q of ['code', '.code']) {
+            for (const el of dom.querySelectorAll(q)) {
+              highlightjs.highlightBlock(el);
+              if (q === 'code' && el.parentNode && el.parentNode.classList) {
+                el.parentNode.classList.add('lang-highlight');
+              }
+            }
+          }
+
+          done();
+        }
+      ]
     }))
     .use(metalsmithSass({
     }))
