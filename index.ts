@@ -128,9 +128,19 @@ program
   .command('serve')
   .description('Build the Metalsmith website')
   .option('--incremental', 'Incremental rebuilds')
-  .action(() => {
-    const server = child_process.spawn('http-server', ['-c-1',
-        '-a', '127.0.0.1', 'build/']);
+  .option('--non-local', 'Use non-local address 0.0.0.0 for binding')
+  .action((cmd) => {
+    const serverArgs = ['-c-1'];
+    if (cmd.nonLocal) {
+      serverArgs.push('-a');
+      serverArgs.push('0.0.0.0');
+    }
+    else {
+      serverArgs.push('-a');
+      serverArgs.push('127.0.0.1');
+    }
+    serverArgs.push('build/')
+    const server = child_process.spawn('http-server', serverArgs);
     server.stdout.on('data', (data) => console.log(data.toString()));
     server.stderr.on('data', (data) => console.error(data.toString()));
     server.on('error', (err) => {
@@ -144,7 +154,7 @@ program
       "${source}/**": "**",
       "layouts/**": "**",
     };
-    if (program.incremental) {
+    if (cmd.incremental) {
       paths["${source}/**"] = true;
     }
     _build((metalsmith) => metalsmith.use(metalsmithWatch({

@@ -28,6 +28,15 @@ export class TagData {
   }
 }
 
+function isDateDateless(d:Date):boolean {
+  return (
+      d.getUTCDate() === 1
+      && d.getUTCHours() === 0
+      && d.getUTCMinutes() === 0
+      && d.getUTCSeconds() === 0
+      && d.getUTCMilliseconds() === 1);
+}
+
 export function tagPlugin(config:TagPluginConfig) {
   return async function(files:any, metalsmith:any) {
     const metadata = metalsmith.metadata();
@@ -93,14 +102,30 @@ export function tagPlugin(config:TagPluginConfig) {
           for (const t of fc.tags) file.tags.add(t);
         }
         if (fc.dateField !== undefined) {
-          const m = k.match(/(^|\/)(\d\d\d\d-\d\d)\/(\d\d)-.*$/);
+          //Allow unspecified days too!  Default to 1st of month.
+          const m = k.match(/(^|\/)(\d\d\d\d-\d\d)\/((\d\d)-)?.*$/);
           if (m !== null) {
-            file[fc.dateField] = new Date(`${m[2]}-${m[3]}`);
+            let dateStr:string = `${m[2]}`;
+            if (m[3] !== undefined) {
+              dateStr += `-${m[4]}`;
+            }
+            else {
+              //Add an hour so we know the day is fake.
+              dateStr += `-01T00:00:00.001`;
+            }
+            file[fc.dateField] = new Date(dateStr);
           }
           else {
-            const m2 = k.match(/(^|\/)(\d\d\d\d-\d\d-\d\d)-.*$/);
+            const m2 = k.match(/(^|\/)(\d\d\d\d-\d\d)(-\d\d)?-.*$/);
             if (m2 !== null) {
-              file[fc.dateField] = new Date(m2[2]);
+              let dateStr:string = m2[2];
+              if (m2[3] !== undefined) {
+                dateStr += `-${m2[4]}`;
+              }
+              else {
+                dateStr += `-01T00:00:00.001`;
+              }
+              file[fc.dateField] = new Date(dateStr);
             }
           }
         }
@@ -135,10 +160,12 @@ export function tagPlugin(config:TagPluginConfig) {
           tagLast = `${tagLast}-${d.getUTCMonth()+1}`;
           hierarchyEntry.push(tagLast);
 
-          tagLast = `${tagLast}-${d.getUTCDate()}`;
-          hierarchyEntry.push(tagLast);
-          file.tags.add(tagLast);
+          if (!isDateDateless(d)) {
+            tagLast = `${tagLast}-${d.getUTCDate()}`;
+            hierarchyEntry.push(tagLast);
+          }
 
+          file.tags.add(tagLast);
           config.tagHierarchy.push(hierarchyEntry.join('/'));
         }
       }
@@ -307,7 +334,13 @@ export function tagPlugin(config:TagPluginConfig) {
         //Already sorted, just extract headers and make new group when changed.
         for (const p of tag.posts) {
           const f = p[sort[0]];
-          const header = f && `${f.getUTCFullYear()}-${f.getUTCMonth()+1}-${f.getUTCDate()}` || 'None';
+          let header:string = 'None';
+          if (f) {
+            header = `${f.getUTCFullYear()}-${f.getUTCMonth()+1}`;
+            if (!isDateDateless(f)) {
+              header += `-${f.getUTCDate()}`;
+            }
+          }
           if (lastHeader === undefined || lastHeader !== header) {
             lastHeader = header;
             newPosts[header] = lastGroup = [];
