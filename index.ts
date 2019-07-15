@@ -4,6 +4,7 @@ import * as program from 'commander';
 import * as path from 'path';
 import * as process from 'process';
 const highlightjs = require('highlight.js');
+import {inkscapePlugin} from './plugin/inkscape';
 import {layoutPlugin} from './plugin/layout';
 import {tagPlugin} from './plugin/tagging-and-dates';
 
@@ -188,6 +189,10 @@ function _build(finalStep:{(metalsmith:any):any}) {
     //Metalsmith plugins do is manipulate the files array, which maps paths to
     //some metadata (including "contents", the file's contents).
     .use(debugMetalsmithPlugin())
+    //Apply Inkscape transformations as needed.  Since Inkscape supports nice
+    //WYSIWYG editing and arranging of images, trying to use that as a blog
+    //component editor.
+    .use(inkscapePlugin({ pattern: '**/*.multi.svg' }))
     //Replicate the file system hierarchy as "attachments" and "attachedTo"
     .use(function(files:any, metalsmith:any) {
       //TODO: file date via name (YYYY-MM-DD-<name>).  Git LFS support / instructions.
