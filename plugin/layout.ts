@@ -40,6 +40,8 @@ async function _doLayout(fname:string, v:{contents:Buffer}, metadata:any,
   }
   const renderer = pug.compile(contentsStr, {
     basedir: path.dirname(sourceDir),
+    cache: true,
+    compileDebug: false,
     filename: path.relative(path.dirname(sourceDir), path.resolve(sourceDir, fname)),
     filters: {
       escape: (contents:string) => contents.replace(/</g, '&lt;').replace(/>/g, '&gt;'),

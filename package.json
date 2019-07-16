@@ -10,6 +10,7 @@
   "main": "./build/index.js",
   "scripts": {
     "build": "tsc && node build/index.js build",
+    "debug-incremental": "tsc && echo 'for use with chrome://inspect' && node --inspect-brk build/index.js serve --incremental",
     "start": "tsc && node build/index.js serve",
     "start-nonlocal": "tsc && node build/index.js serve --non-local",
     "start-incremental": "tsc && node build/index.js serve --incremental"

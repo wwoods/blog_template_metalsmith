@@ -46,13 +46,18 @@ export function tagPlugin(config:TagPluginConfig) {
   return async function(files:any, metalsmith:any) {
     const metadata = metalsmith.metadata();
     const noAutoIndex = new Set<string>();  // do not auto index these files
+    const tagChanged = new Set<string>();
     const tagParentsAdd = (p:string, c:string) => {
       let m = tagParents.get(c);
       if (m === undefined) {
         m = new Set<string>();
         tagParents.set(c, m);
       }
-      m.add(p);
+
+      if (!m.has(p)) {
+        tagChanged.add(p);
+        m.add(p);
+      }
     };
 
     //FIRST assign dates and tags based on folder names {{{1
@@ -315,6 +320,7 @@ export function tagPlugin(config:TagPluginConfig) {
             if (i !== -1) p.splice(i, 1);
           }
           p.push(file);
+          tagChanged.add(r);
         }
       }
     }
@@ -387,6 +393,8 @@ export function tagPlugin(config:TagPluginConfig) {
 
     //Make homepages for each tag (that doesn't already have a page)
     for (const t of metadata.tagArrayOfAll) {
+      if (!tagChanged.has(t)) continue;
+
       const path = `tags/${t}.pug`;
       if (files[path] !== undefined) {
         //Custom page.
