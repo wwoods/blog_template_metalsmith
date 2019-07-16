@@ -171,14 +171,27 @@ program.parse(process.argv);
 /** Perform the build. */
 function _build(finalStep:{(metalsmith:any):any}) {
   let firstBuild = true;
+
+  //Track attachments across builds
+  type IncrementalAttached = [Map<string, any>, Map<string, any> | undefined];
+  const incrementalAttached = new Map<string, IncrementalAttached>();
+  const nongenFiles = new Map<string, any>();
+
   let ms = Metalsmith(path.resolve(__dirname, '..'))
     .metadata(indexConfig.siteMetadata)
     .source('./contents')
     .destination('./build')
     //Delete everything in ./build?
     .clean(true)
-    .use(function(files:any) {
+    .use(function(files:any, metalsmith:any) {
+      metalsmith.metadata().incremental = !firstBuild;
       for (let k in files) {
+        files[k].id = k;
+        //Copy new versions of index pages for incremental builds
+        if (/(^|\/)index.pug$/.test(k)) {
+          //Index page
+          nongenFiles.set(k, _fileCopy(files[k]));
+        }
         if (files[k].__isLink) {
           //A symlink; we represent these through the "linksSeen" variable.
           delete files[k];
@@ -213,7 +226,14 @@ function _build(finalStep:{(metalsmith:any):any}) {
       const metadata = metalsmith.metadata();
       const ensureDefaultFolderIndex = (folderWithTrailingSlash:string) => {
         const folderIndex = `${folderWithTrailingSlash}index.pug`;
-        if (files[folderIndex] === undefined) {
+        if (files[folderIndex] !== undefined) return;
+
+        const g = nongenFiles.get(folderIndex);
+        if (metadata.incremental && g !== undefined) {
+          //Re-build, as attachments may have changed.
+          files[folderIndex] = _fileCopy(g);
+        }
+        else {
           let folderParts = folderWithTrailingSlash.split('/');
           let folderName:string;
           if (folderParts.length <= 1) {
@@ -222,22 +242,26 @@ function _build(finalStep:{(metalsmith:any):any}) {
           else {
             folderName = folderParts[folderParts.length - 2];
           }
+          let attached = incrementalAttached.get(folderIndex);
+          if (attached === undefined) {
+            attached = [new Map<string, any>(), new Map<string, any>()];
+            incrementalAttached.set(folderIndex, attached);
+          }
           files[folderIndex] = {
             generated: true,
             title: folderName,
             contents: '',
-            attachedTo: [],
-            attachments: [],
           };
         }
       };
       ensureDefaultFolderIndex('');
       for (let k in files) {
-        //Anything can be attached
-        files[k].attachedTo = files[k].attachedTo || [];
-        //Only index.pug has attachments.
-        if (k.search(/(^|\/)index\.pug$/g) !== -1) {
-          files[k].attachments = files[k].attachments || [];
+        let attached = incrementalAttached.get(k);
+        const hasAttached = k.search(/(^|\/)index\.pug$/g) !== -1;
+        if (attached === undefined) {
+          attached = [new Map<string, any>(),
+              hasAttached ? new Map<string, any>() : undefined];
+          incrementalAttached.set(k, attached);
         }
 
         //Ensure there is a corresponding index.pug for each file folder, as we
@@ -255,16 +279,21 @@ function _build(finalStep:{(metalsmith:any):any}) {
           //Target is directory, use our index file for that directory.
           v = v + `${path.sep}index.pug`;
         }
-        const fK = files[kParent];
-        const fV = files[v];
-        if (fK === undefined || fV === undefined) {
-          if (!firstBuild) continue;
-          if (fK === undefined) throw new Error(`Could not find link part ${kParent}`);
-          if (fV === undefined) throw new Error(`Could not find link part ${v}`);
-        }
 
-        fV.attachedTo.push(fK);
-        fK.attachments.push(fV);
+        //Make sure that, at least when first built, both parts of the link
+        //exist.
+        if (firstBuild) {
+          if (files[kParent] === undefined)
+            throw new Error(`Could not find link part ${kParent}`);
+          if (files[v] === undefined)
+            throw new Error(`Could not find link part ${v}`);
+
+          let iv:IncrementalAttached = (
+              incrementalAttached.get(v) as IncrementalAttached);
+          (iv as IncrementalAttached)[0].set(kParent, files[kParent]);
+          iv = incrementalAttached.get(kParent) as IncrementalAttached;
+          ((iv as IncrementalAttached)[1] as Map<string, any>).set(v, files[v]);
+        }
       }
       firstBuild = false;
       for (let k in files) {
@@ -275,24 +304,47 @@ function _build(finalStep:{(metalsmith:any):any}) {
           folder = `${folder}/index.pug`;
           if (folder[0] === '/') folder = folder.substring(1);
           if (folder === k) continue; //root
-          const f = files[folder];
-          if (f !== undefined && f.attachments !== undefined) {
-            f.attachments.push(files[k]);
-            files[k].attachedTo.push(f);
+
+          let attach = incrementalAttached.get(folder);
+          if (attach !== undefined) {
+            const j = attach[1];
+            if (j !== undefined) {
+              j.set(k, files[k]);
+            }
           }
+
+          attach = incrementalAttached.get(k);
+          if (attach !== undefined) {
+            attach[0].set(folder, files[folder]);
+          }
+
           continue;
         }
 
         let folder = k.substring(0, k.lastIndexOf('/')+1);  //includes "/"
-        const f = files[`${folder}index.pug`];
+        const fname = `${folder}index.pug`;
+        const f = files[fname];
         if (f === undefined) continue;
-        if (f.attachments === undefined) continue;
-        f.attachments.push(files[k]);
-        files[k].attachedTo.push(f);
+        const fAttached = incrementalAttached.get(fname);
+        if (fAttached === undefined) continue;
+        const j = fAttached[1];
+        if (j === undefined) continue;
+        j.set(k, files[k]);
+        (incrementalAttached.get(k) as IncrementalAttached)[0].set(fname, f);
       }
       for (let k in files) {
-        const att = files[k].attachments;
-        att !== undefined && att.sort((a:any, b:any) => naturalSort(a.title, b.title));
+        const f = files[k];
+        const attach = incrementalAttached.get(k);
+        if (attach !== undefined) {
+          f.attachedTo = [...attach[0].values()];
+          {
+            const j = attach[1];
+            if (j !== undefined) {
+              f.attachments = [...j.values()];
+              f.attachments.sort((a:any, b:any) => naturalSort(a.title, b.title));
+            }
+          }
+        }
       }
     })
     //Assign date and tag metadata, build tag sites (configured via indexConfig.ts)
@@ -339,3 +391,14 @@ function _build(finalStep:{(metalsmith:any):any}) {
       if (err) throw err;
     });
 }
+
+
+/** Copy a Metalsmith file object in a way that is safe from transformers.
+ * */
+function _fileCopy(file:any):any {
+  const copy = Object.assign({}, file);
+  if (copy.contents !== undefined)
+    copy.contents = Buffer.from(copy.contents);
+  return copy;
+}
+

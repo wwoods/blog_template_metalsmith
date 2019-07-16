@@ -37,13 +37,13 @@ block template-body
 
     h2 Posts
     div.postList
-      if tagGet(tag).posts.length !== undefined
+      if tagGet(tag).postGroups.length !== undefined
         //Flat array
-        each post in tagGet(tag).posts
+        each post in tagGet(tag).postGroups
           +postLine(post)
       else
         //With headers
-        each posts, heading in tagGet(tag).posts
+        each posts, heading in tagGet(tag).postGroups
           div.group #{heading}
           each post in posts
             +postLine(post)

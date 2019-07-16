@@ -18,6 +18,7 @@ export class TagData {
   children = new Array<string>();
   parents = new Array<string>();
   posts = new Array<any>();
+  postGroups = new Array<any>();
   path:string;
   relatives = new Set<string>();  // includes self, ROOT_TAG
   rootPath:string;
@@ -38,10 +39,13 @@ function isDateDateless(d:Date):boolean {
 }
 
 export function tagPlugin(config:TagPluginConfig) {
+  //Knowledge which persists to incremental builds.
+  const tagData = new Map<string, TagData>();
+  const tagParents = new Map<string, Set<string>>();
+
   return async function(files:any, metalsmith:any) {
     const metadata = metalsmith.metadata();
     const noAutoIndex = new Set<string>();  // do not auto index these files
-    const tagParents = new Map<string, Set<string>>();
     const tagParentsAdd = (p:string, c:string) => {
       let m = tagParents.get(c);
       if (m === undefined) {
@@ -205,7 +209,6 @@ export function tagPlugin(config:TagPluginConfig) {
 
     //Now all tags have a parent.
     if (tagParents.has(ROOT_TAG)) tagParents.delete(ROOT_TAG);
-    const tagData = new Map<string, TagData>();
     metadata.tagArrayOfAll = Array.from(tagParents.keys());
     metadata.tagArrayOfAll.push(ROOT_TAG);
     metadata.tagArrayOfAll.sort(naturalSort);
@@ -218,8 +221,11 @@ export function tagPlugin(config:TagPluginConfig) {
     };
 
     for (let k of metadata.tagArrayOfAll) {
-      const tag = new TagData(k);
-      tagData.set(k, tag);
+      let tag = tagData.get(k);
+      if (tag === undefined) {
+        tag = new TagData(k);
+        tagData.set(k, tag);
+      }
 
       tag.path = `/tags/${k}`;
 
@@ -247,7 +253,9 @@ export function tagPlugin(config:TagPluginConfig) {
     //Also iterate parents and add children.
     for (const [k, tag] of tagData.entries()) {
       for (const p of tag.parents) {
-        tagGet(p).children.push(k);
+        const t = tagGet(p).children;
+        if (t.indexOf(k) !== -1) continue;
+        t.push(k);
       }
       //Resolve relatives to root (including shortest path for "rootName")
       const stack = new Array<[string, string]>();
@@ -301,7 +309,12 @@ export function tagPlugin(config:TagPluginConfig) {
         for (const r of tagGet(t).relatives) {
           if (seen.has(r)) continue;
           seen.add(r);
-          tagGet(r).posts.push(file);
+          const p = tagGet(r).posts;
+          if (metadata.incremental) {
+            const i = p.map(a => a.id).indexOf(file.id);
+            if (i !== -1) p.splice(i, 1);
+          }
+          p.push(file);
         }
       }
     }
@@ -347,7 +360,10 @@ export function tagPlugin(config:TagPluginConfig) {
           }
           lastGroup.push(p);
         }
-        tag.posts = newPosts;
+        tag.postGroups = newPosts;
+      }
+      else {
+        tag.postGroups = tag.posts;
       }
     }
 
